@@ -30,6 +30,8 @@ spring:
       enable-auto-commit: false
       properties:
         spring.json.trusted.packages: "in.techseva.cb.core.kafka"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: "in.techseva.cb.core.kafka.VulnerabilityKafkaEvent"
   elasticsearch:
     uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
   cache:
