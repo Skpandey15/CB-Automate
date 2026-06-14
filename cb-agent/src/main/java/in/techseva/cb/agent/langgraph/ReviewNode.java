@@ -12,7 +12,7 @@ import java.util.Map;
 
 /**
  * Fifth node: final quality review using the fallback (Anthropic claude) model.
- * Checks semantic correctness of the patch, not just structure.
+ * Increments RETRY_COUNT on rejection so routing terminates after MAX_RETRIES.
  */
 @Component
 public class ReviewNode implements NodeAction<AgentWorkflowState> {
@@ -54,7 +54,7 @@ public class ReviewNode implements NodeAction<AgentWorkflowState> {
             log.warn("ReviewNode: review LLM call failed, accepting with original confidence: {}", e.getMessage());
             return Map.of(
                     AgentWorkflowState.VALIDATION_OK, true,
-                    AgentWorkflowState.CONFIDENCE, state.confidence()
+                    AgentWorkflowState.CONFIDENCE,    state.confidence()
             );
         }
 
@@ -63,10 +63,18 @@ public class ReviewNode implements NodeAction<AgentWorkflowState> {
 
         log.info("ReviewNode: vuln={} approved={} finalConfidence={}", vuln.id(), approved, finalConfidence);
 
-        return Map.of(
-                AgentWorkflowState.VALIDATION_OK, approved,
-                AgentWorkflowState.CONFIDENCE, finalConfidence
-        );
+        if (approved) {
+            return Map.of(
+                    AgentWorkflowState.VALIDATION_OK, true,
+                    AgentWorkflowState.CONFIDENCE,    finalConfidence
+            );
+        } else {
+            return Map.of(
+                    AgentWorkflowState.VALIDATION_OK, false,
+                    AgentWorkflowState.CONFIDENCE,    finalConfidence,
+                    AgentWorkflowState.RETRY_COUNT,   state.retryCount() + 1
+            );
+        }
     }
 
     private double extractFinalConfidence(String response, double fallback) {

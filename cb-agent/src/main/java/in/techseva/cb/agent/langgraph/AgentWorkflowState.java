@@ -2,15 +2,12 @@ package in.techseva.cb.agent.langgraph;
 
 import in.techseva.cb.core.domain.Vulnerability;
 import org.bsc.langgraph4j.state.AgentState;
+import org.bsc.langgraph4j.state.Channel;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Immutable-by-convention state bag for the LangGraph4j multi-agent workflow.
- * Each node returns a partial Map that is merged into this state.
- */
 public class AgentWorkflowState extends AgentState {
 
     public static final String VULNERABILITY = "vulnerability";
@@ -23,6 +20,20 @@ public class AgentWorkflowState extends AgentState {
     public static final String ERROR         = "error";
     public static final String INPUT_TOKENS  = "inputTokens";
     public static final String OUTPUT_TOKENS = "outputTokens";
+
+    // Schema required by StateGraph constructor — all fields use last-value-wins semantics
+    public static final Map<String, Channel<?>> SCHEMA = Map.of(
+            VULNERABILITY, Channel.of((Object o, Object n) -> n),
+            CONTEXT_DOCS,  Channel.of((Object o, Object n) -> n),
+            GENERATED_FIX, Channel.of((Object o, Object n) -> n),
+            LLM_MODEL,     Channel.of((Object o, Object n) -> n),
+            CONFIDENCE,    Channel.of((Object o, Object n) -> n),
+            VALIDATION_OK, Channel.of((Object o, Object n) -> n),
+            RETRY_COUNT,   Channel.of((Object o, Object n) -> n),
+            ERROR,         Channel.of((Object o, Object n) -> n),
+            INPUT_TOKENS,  Channel.of((Object o, Object n) -> n),
+            OUTPUT_TOKENS, Channel.of((Object o, Object n) -> n)
+    );
 
     public AgentWorkflowState(Map<String, Object> initData) {
         super(initData);

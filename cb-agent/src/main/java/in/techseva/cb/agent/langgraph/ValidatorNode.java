@@ -9,7 +9,7 @@ import java.util.Map;
 
 /**
  * Fourth node: validates the generated fix JSON structure and basic sanity checks.
- * Full OPA governance happens later in cb-pr. This node handles structural validation.
+ * Increments RETRY_COUNT on every failure so the routing gate can terminate.
  */
 @Component
 public class ValidatorNode implements NodeAction<AgentWorkflowState> {
@@ -20,14 +20,17 @@ public class ValidatorNode implements NodeAction<AgentWorkflowState> {
     @Override
     public Map<String, Object> apply(AgentWorkflowState state) throws Exception {
         String fix = state.generatedFix().orElse("");
+        int nextRetry = state.retryCount() + 1;
 
         if (fix.isBlank()) {
-            log.warn("ValidatorNode: empty fix generated");
-            return Map.of(AgentWorkflowState.VALIDATION_OK, false,
-                          AgentWorkflowState.ERROR, "Empty fix generated");
+            log.warn("ValidatorNode: empty fix generated (retry={})", state.retryCount());
+            return Map.of(
+                    AgentWorkflowState.VALIDATION_OK, false,
+                    AgentWorkflowState.ERROR,       "Empty fix generated",
+                    AgentWorkflowState.RETRY_COUNT, nextRetry
+            );
         }
 
-        // Strip markdown code fences if present
         String json = fix.strip();
         if (json.startsWith("```")) {
             int start = json.indexOf('\n') + 1;
@@ -35,33 +38,40 @@ public class ValidatorNode implements NodeAction<AgentWorkflowState> {
             json = end > start ? json.substring(start, end).strip() : json;
         }
 
-        // Must be valid JSON with required fields
         if (!json.startsWith("{") || !json.contains("patchDiff") || !json.contains("confidence")) {
-            log.warn("ValidatorNode: fix missing required JSON-LD fields");
-            return Map.of(AgentWorkflowState.VALIDATION_OK, false,
-                          AgentWorkflowState.ERROR, "Fix JSON missing required fields: patchDiff, confidence");
+            log.warn("ValidatorNode: fix missing required JSON-LD fields (retry={})", state.retryCount());
+            return Map.of(
+                    AgentWorkflowState.VALIDATION_OK, false,
+                    AgentWorkflowState.ERROR,       "Fix JSON missing required fields: patchDiff, confidence",
+                    AgentWorkflowState.RETRY_COUNT, nextRetry
+            );
         }
 
-        // Extract confidence value
         double confidence = extractConfidence(json);
         if (confidence < MIN_CONFIDENCE) {
-            log.warn("ValidatorNode: confidence {} below threshold {}", confidence, MIN_CONFIDENCE);
-            return Map.of(AgentWorkflowState.VALIDATION_OK, false,
-                          AgentWorkflowState.CONFIDENCE, confidence,
-                          AgentWorkflowState.ERROR, "Confidence " + confidence + " below minimum " + MIN_CONFIDENCE);
+            log.warn("ValidatorNode: confidence {} below threshold {} (retry={})",
+                    confidence, MIN_CONFIDENCE, state.retryCount());
+            return Map.of(
+                    AgentWorkflowState.VALIDATION_OK, false,
+                    AgentWorkflowState.CONFIDENCE,    confidence,
+                    AgentWorkflowState.ERROR,         "Confidence " + confidence + " below minimum " + MIN_CONFIDENCE,
+                    AgentWorkflowState.RETRY_COUNT,   nextRetry
+            );
         }
 
-        // Reject fixes that attempt system-level exploits
         if (json.contains("System.exit") || json.contains("Runtime.getRuntime().exec")) {
             log.error("ValidatorNode: SECURITY VIOLATION — fix contains dangerous call");
-            return Map.of(AgentWorkflowState.VALIDATION_OK, false,
-                          AgentWorkflowState.ERROR, "Fix contains dangerous system calls");
+            return Map.of(
+                    AgentWorkflowState.VALIDATION_OK, false,
+                    AgentWorkflowState.ERROR,         "Fix contains dangerous system calls",
+                    AgentWorkflowState.RETRY_COUNT,   nextRetry
+            );
         }
 
         log.info("ValidatorNode: fix VALID confidence={}", confidence);
         return Map.of(
                 AgentWorkflowState.VALIDATION_OK, true,
-                AgentWorkflowState.CONFIDENCE, confidence,
+                AgentWorkflowState.CONFIDENCE,    confidence,
                 AgentWorkflowState.GENERATED_FIX, json
         );
     }

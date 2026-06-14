@@ -2,17 +2,18 @@ package in.techseva.cb.agent.langgraph;
 
 import in.techseva.cb.core.domain.Vulnerability;
 import org.bsc.langgraph4j.StateGraph;
-import org.bsc.langgraph4j.CompileConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.bsc.langgraph4j.StateGraph.END;
 import static org.bsc.langgraph4j.StateGraph.START;
+import static org.bsc.langgraph4j.utils.CollectionsUtils.node_async;
 
 /**
  * Wires the LangGraph4j multi-agent workflow:
@@ -42,45 +43,37 @@ public class LangGraphWorkflow {
         this.reviewNode = reviewNode;
     }
 
-    /**
-     * Runs the full multi-agent pipeline for a vulnerability and returns the final state.
-     */
     public AgentWorkflowState run(Vulnerability vuln) throws Exception {
-        var graph = new StateGraph<>(AgentWorkflowState::new)
-                .addNode("planner",   plannerNode)
-                .addNode("retriever", retrieverNode)
-                .addNode("generator", generatorNode)
-                .addNode("validator", validatorNode)
-                .addNode("reviewer",  reviewNode)
+        var compiled = new StateGraph<>(AgentWorkflowState.SCHEMA, AgentWorkflowState::new)
+                .addNode("planner",   node_async(plannerNode))
+                .addNode("retriever", node_async(retrieverNode))
+                .addNode("generator", node_async(generatorNode))
+                .addNode("validator", node_async(validatorNode))
+                .addNode("reviewer",  node_async(reviewNode))
                 .addEdge(START,       "planner")
                 .addEdge("planner",   "retriever")
                 .addEdge("retriever", "generator")
                 .addEdge("generator", "validator")
                 .addConditionalEdges("validator",
-                        state -> {
-                            if (state.validationOk()) return "reviewer";
-                            int retry = state.retryCount();
-                            if (retry < MAX_RETRIES) return "generator";
-                            return END;
-                        },
+                        state -> CompletableFuture.completedFuture(
+                                state.validationOk() ? "reviewer"
+                                : state.retryCount() < MAX_RETRIES ? "generator"
+                                : END),
                         Map.of("reviewer", "reviewer", "generator", "generator", END, END))
                 .addConditionalEdges("reviewer",
-                        state -> state.validationOk() ? END : "generator",
+                        state -> CompletableFuture.completedFuture(
+                                state.validationOk() ? END : "generator"),
                         Map.of(END, END, "generator", "generator"))
-                .compile(CompileConfig.builder().build());
+                .compile();
 
         Map<String, Object> initialState = new HashMap<>();
         initialState.put(AgentWorkflowState.VULNERABILITY, vuln);
         initialState.put(AgentWorkflowState.RETRY_COUNT, 0);
 
-        var result = graph.stream(initialState);
-        AgentWorkflowState finalState = result
-                .stream()
-                .filter(n -> n.state() != null)
-                .reduce((a, b) -> b)
-                .map(n -> n.state())
-                .orElseThrow(() -> new IllegalStateException("Workflow produced no output for vuln=" + vuln.id()));
+        Map<String, Object> result = compiled.invoke(initialState)
+                .get(120, TimeUnit.SECONDS);
 
+        AgentWorkflowState finalState = new AgentWorkflowState(result);
         log.info("LangGraph workflow complete: vuln={} model={} confidence={} validationOk={}",
                 vuln.id(), finalState.llmModel(), finalState.confidence(), finalState.validationOk());
         return finalState;

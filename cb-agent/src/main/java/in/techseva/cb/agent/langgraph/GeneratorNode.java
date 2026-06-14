@@ -69,8 +69,8 @@ public class GeneratorNode implements NodeAction<AgentWorkflowState> {
 
         String fixJson = response.getResult().getOutput().getText();
         Usage usage = response.getMetadata().getUsage();
-        long inputTokens = usage != null ? usage.getPromptTokens() : 0L;
-        long outputTokens = usage != null ? usage.getGenerationTokens() : 0L;
+        long inputTokens  = usage != null && usage.getInputTokenCount()  != null ? usage.getInputTokenCount()  : 0L;
+        long outputTokens = usage != null && usage.getOutputTokenCount() != null ? usage.getOutputTokenCount() : 0L;
 
         promptCache.putPromptResponse(state.llmModel(), promptHash, fixJson);
         log.info("GeneratorNode: generated fix for vuln={} model={} tokens={}+{}",
