@@ -96,6 +96,7 @@ spec:
       labels:
         app: cb-agent
     spec:
+      enableServiceLinks: false
       securityContext:
         runAsUser: 1001
         runAsNonRoot: true
