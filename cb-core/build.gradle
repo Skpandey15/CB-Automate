@@ -6,6 +6,8 @@ dependencies {
     implementation "com.github.ben-manes.caffeine:caffeine:${caffeineVersion}"
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    // Kafka event bus
+    implementation 'org.springframework.kafka:spring-kafka'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation "org.testcontainers:mongodb:${testcontainersVersion}"

@@ -1,0 +1,204 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: cb-system
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        uid: prometheus
+        url: http://prometheus:9090
+        access: proxy
+        isDefault: true
+      - name: Loki
+        type: loki
+        uid: loki
+        url: http://loki:3100
+        access: proxy
+      - name: Tempo
+        type: tempo
+        uid: tempo
+        url: http://tempo:3200
+        access: proxy
+        jsonData:
+          tracesToLogsV2:
+            datasourceUid: loki
+            tags: [{key: "service.name", value: "app"}]
+          lokiSearch:
+            datasourceUid: loki
+          serviceMap:
+            datasourceUid: prometheus
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-provider
+  namespace: cb-system
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: cb-dashboards
+        type: file
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-cb
+  namespace: cb-system
+data:
+  compliance-buddy.json: |
+    {
+      "title": "Compliance Buddy v3",
+      "uid": "cb-overview",
+      "tags": ["compliance-buddy"],
+      "panels": [
+        {
+          "id": 1,
+          "title": "Vulnerabilities Detected / Hour",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+          "targets": [{"expr": "increase(cb_vulnerabilities_detected_total[1h])", "datasource": {"uid": "prometheus"}}]
+        },
+        {
+          "id": 2,
+          "title": "Fixes Resolved / Hour",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+          "targets": [{"expr": "increase(cb_vulnerabilities_resolved_total[1h])", "datasource": {"uid": "prometheus"}}]
+        },
+        {
+          "id": 3,
+          "title": "Fix Acceptance Ratio",
+          "type": "gauge",
+          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+          "fieldConfig": {"defaults": {"min": 0, "max": 1, "unit": "percentunit"}},
+          "targets": [{"expr": "cb_fix_acceptance_ratio", "datasource": {"uid": "prometheus"}}]
+        },
+        {
+          "id": 4,
+          "title": "LLM Cost Today ($)",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+          "targets": [{"expr": "increase(cb_llm_cost_dollars_total[24h])", "datasource": {"uid": "prometheus"}}]
+        },
+        {
+          "id": 5,
+          "title": "LLM Token Usage by Model",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+          "targets": [{"expr": "rate(cb_llm_tokens_total[5m])", "legendFormat": "{{model}}", "datasource": {"uid": "prometheus"}}]
+        },
+        {
+          "id": 6,
+          "title": "Agentic Pipeline Latency (p95)",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+          "targets": [{"expr": "histogram_quantile(0.95, rate(cb_pipeline_duration_seconds_bucket[5m]))", "datasource": {"uid": "prometheus"}}]
+        },
+        {
+          "id": 7,
+          "title": "Top CWEs (Last 7d)",
+          "type": "piechart",
+          "gridPos": {"h": 8, "w": 8, "x": 0, "y": 12},
+          "targets": [{"expr": "topk(5, sum by(cwe_id)(cb_vulnerabilities_detected_total))", "legendFormat": "{{cwe_id}}", "datasource": {"uid": "prometheus"}}]
+        },
+        {
+          "id": 8,
+          "title": "OPA Policy Violations",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 8, "x": 8, "y": 12},
+          "targets": [{"expr": "rate(cb_opa_violations_total[5m])", "legendFormat": "{{policy}}", "datasource": {"uid": "prometheus"}}]
+        },
+        {
+          "id": 9,
+          "title": "Hybrid Search Results (vector vs BM25)",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 12},
+          "targets": [
+            {"expr": "rate(cb_search_results_total{source=\"qdrant\"}[5m])", "legendFormat": "Qdrant (vector)", "datasource": {"uid": "prometheus"}},
+            {"expr": "rate(cb_search_results_total{source=\"elasticsearch\"}[5m])", "legendFormat": "ES (BM25)", "datasource": {"uid": "prometheus"}}
+          ]
+        }
+      ],
+      "schemaVersion": 38,
+      "version": 1
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: cb-system
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:10.4.2
+          ports:
+            - containerPort: 3000
+          env:
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: "cb-grafana-2026"
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "false"
+            - name: GF_FEATURE_TOGGLES_ENABLE
+              value: "traceToMetrics"
+          volumeMounts:
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: dashboards-provider
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: dashboard-cb
+              mountPath: /var/lib/grafana/dashboards
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: datasources
+          configMap:
+            name: grafana-datasources
+        - name: dashboards-provider
+          configMap:
+            name: grafana-dashboards-provider
+        - name: dashboard-cb
+          configMap:
+            name: grafana-dashboard-cb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: cb-system
+spec:
+  selector:
+    app: grafana
+  ports:
+    - port: 3000
+      targetPort: 3000

@@ -9,6 +9,7 @@ import in.techseva.cb.core.service.AuditService;
 import in.techseva.cb.scanner.client.SonarQubeClient;
 import in.techseva.cb.scanner.client.SonarQubeClient.SonarIssue;
 import in.techseva.cb.scanner.client.SonarQubeClient.SonarIssuesResponse;
+import in.techseva.cb.scanner.kafka.VulnerabilityKafkaPublisher;
 import in.techseva.cb.scanner.mapper.SonarIssueMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,7 @@ public class ScannerService {
     private final SonarIssueMapper issueMapper;
     private final ApplicationEventPublisher eventPublisher;
     private final AuditService auditService;
+    private final VulnerabilityKafkaPublisher kafkaPublisher;
     private final List<String> monitoredProjects;
 
     public ScannerService(SonarQubeClient sonarClient,
@@ -37,6 +39,7 @@ public class ScannerService {
                           SonarIssueMapper issueMapper,
                           ApplicationEventPublisher eventPublisher,
                           AuditService auditService,
+                          VulnerabilityKafkaPublisher kafkaPublisher,
                           @org.springframework.beans.factory.annotation.Value(
                                   "${scanner.projects:}") List<String> monitoredProjects) {
         this.sonarClient = sonarClient;
@@ -44,6 +47,7 @@ public class ScannerService {
         this.issueMapper = issueMapper;
         this.eventPublisher = eventPublisher;
         this.auditService = auditService;
+        this.kafkaPublisher = kafkaPublisher;
         this.monitoredProjects = monitoredProjects;
     }
 
@@ -71,6 +75,7 @@ public class ScannerService {
                     auditService.log(saved.id(), "Vulnerability", "DETECTED",
                             "scanner", Map.of("sonarKey", issue.key(), "severity", issue.severity()));
                     eventPublisher.publishEvent(new VulnerabilityDetectedEvent(this, saved));
+                    kafkaPublisher.publish(saved);
                     newFindings++;
                     log.debug("New vulnerability detected: sonarKey={} severity={}", issue.key(), issue.severity());
                 }

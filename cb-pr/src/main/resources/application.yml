@@ -4,6 +4,24 @@ spring:
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017/compliance_buddy}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        spring.json.add.type.headers: false
+        enable.idempotence: true
+    consumer:
+      group-id: ${KAFKA_PR_GROUP_ID:cb-pr-group}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "in.techseva.cb.core.kafka"
   ai:
     openai:
       api-key: ${OPENAI_API_KEY:placeholder}
@@ -34,6 +52,11 @@ version1:
 
 patcher:
   repo-root: ${PATCHER_REPO_ROOT:/workspace/repo}
+
+opa:
+  url: ${OPA_URL:http://opa:8181}
+  policy: ${OPA_POLICY:cb/governance}
+  enabled: ${OPA_ENABLED:true}
 
 resilience4j:
   circuitbreaker:

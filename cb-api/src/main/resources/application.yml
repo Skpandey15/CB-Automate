@@ -9,6 +9,9 @@ spring:
   autoconfigure:
     exclude:
       - org.springframework.boot.actuate.autoconfigure.metrics.export.datadog.DatadogMetricsExportAutoConfiguration
+  cloud:
+    vault:
+      enabled: ${VAULT_ENABLED:false}
 
 server:
   port: 8080
@@ -33,21 +36,26 @@ management:
       show-details: when-authorized
       probes:
         enabled: true
+    prometheus:
+      enabled: true
   metrics:
     export:
+      prometheus:
+        enabled: true
       datadog:
         enabled: ${DATADOG_ENABLED:false}
         api-key: ${DATADOG_API_KEY:none}
         application-key: ${DATADOG_APP_KEY:none}
-
-management:
+    tags:
+      application: cb-api
+      environment: ${ENVIRONMENT:production}
   tracing:
     enabled: ${OTEL_ENABLED:true}
     sampling:
       probability: 1.0
   otlp:
     tracing:
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://jaeger:4318/v1/traces}
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://tempo:4318/v1/traces}
 
 logging:
   level:

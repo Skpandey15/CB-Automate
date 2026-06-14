@@ -4,17 +4,32 @@ kind: Kustomization
 namespace: cb-system
 
 resources:
+  # Namespace
   - namespace.yaml
+  # Config / Secrets
   - configmap.yaml
+  - secrets.yaml
+  # Infrastructure
   - mongodb.yaml
   - qdrant.yaml
-  - jaeger.yaml
+  - kafka.yaml
+  - redis.yaml
+  - elasticsearch.yaml
+  - opa.yaml
+  - ollama.yaml
+  # Observability
+  - tempo.yaml
+  - loki.yaml
+  - prometheus.yaml
+  - grafana.yaml
+  # SonarQube
+  - sonarqube.yaml
+  # CB Services
   - cb-python-embedder.yaml
   - cb-api.yaml
   - cb-services.yaml
+  - cb-escalation.yaml
   - ingress.yaml
-  - secrets.yaml
-  - sonarqube.yaml
 
 commonLabels:
   app.kubernetes.io/part-of: compliance-buddy

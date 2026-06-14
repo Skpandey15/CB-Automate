@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: cb-escalation
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/compliance_buddy}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_ESCALATION_GROUP_ID:cb-escalation-group}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "in.techseva.cb.core.kafka"
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.actuate.autoconfigure.metrics.export.datadog.DatadogMetricsExportAutoConfiguration
+  cloud:
+    vault:
+      enabled: ${VAULT_ENABLED:false}
+
+server:
+  port: 8089
+
+jira:
+  enabled: ${JIRA_ENABLED:false}
+  base-url: ${JIRA_BASE_URL:}
+  email: ${JIRA_EMAIL:}
+  api-token: ${JIRA_API_TOKEN:}
+  project-key: ${JIRA_PROJECT_KEY:CB}
+
+teams:
+  enabled: ${TEAMS_ENABLED:false}
+  webhook-url: ${TEAMS_WEBHOOK_URL:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  tracing:
+    enabled: ${OTEL_ENABLED:true}
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://tempo:4318/v1/traces}

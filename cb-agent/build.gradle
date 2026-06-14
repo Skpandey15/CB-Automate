@@ -8,14 +8,28 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
     implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
     // Spring AI: models + Qdrant vector store
     implementation 'org.springframework.ai:spring-ai-starter-model-openai'
     implementation 'org.springframework.ai:spring-ai-starter-model-anthropic'
+    implementation 'org.springframework.ai:spring-ai-starter-model-ollama'
     implementation 'org.springframework.ai:spring-ai-starter-vector-store-qdrant'
+    implementation 'org.springframework.ai:spring-ai-starter-vector-store-elasticsearch'
 
     // MCP Java SDK
     implementation "io.modelcontextprotocol.sdk:mcp:${mcpSdkVersion}"
+
+    // LangGraph4j multi-agent workflow
+    implementation "org.bsc.langgraph4j:langgraph4j-core:${langGraph4jVersion}"
+
+    // Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    // Elasticsearch client for BM25 hybrid search
+    implementation "co.elastic.clients:elasticsearch-java:${elasticsearchVersion}"
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 
     // OpenTelemetry tracing
     implementation 'io.micrometer:micrometer-tracing-bridge-otel'
@@ -27,8 +41,6 @@ dependencies {
     implementation "io.github.resilience4j:resilience4j-retry"
 
     implementation 'io.micrometer:micrometer-registry-datadog'
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 
     testImplementation "org.wiremock:wiremock-standalone:${wiremockVersion}"
     testImplementation "org.testcontainers:mongodb:${testcontainersVersion}"

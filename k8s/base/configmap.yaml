@@ -4,22 +4,76 @@ metadata:
   name: cb-common-config
   namespace: cb-system
 data:
+  # ── Core storage ──────────────────────────────────────────────
   MONGODB_URI: "mongodb://cb-mongodb:27017/compliance_buddy"
-  EMBEDDER_URL: "http://cb-python-embedder:8090"
-  VAULT_URI: "http://vault:8200"
-  VAULT_ENABLED: "false"
-  SPRING_CLOUD_VAULT_ENABLED: "false"
-  DATADOG_ENABLED: "false"
-  DATADOG_SITE: "datadoghq.com"
-  DATADOG_ENV: "local"
-  PATCHER_REPO_ROOT: "/workspace/repo"
-  PATCHER_BUILD_TIMEOUT_MINUTES: "10"
-  MCP_SERVER_URL: "http://cb-mcp-server:8086"
   QDRANT_HOST: "qdrant"
   QDRANT_PORT: "6334"
   QDRANT_COLLECTION: "cb_fixes"
-  OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4318/v1/traces"
+
+  # ── Kafka ─────────────────────────────────────────────────────
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  KAFKA_GROUP_ID_AGENT: "cb-agent-group"
+  KAFKA_GROUP_ID_PATCHER: "cb-patcher-group"
+  KAFKA_GROUP_ID_PR: "cb-pr-group"
+  KAFKA_GROUP_ID_NOTIFIER: "cb-notifier-group"
+  KAFKA_GROUP_ID_ESCALATION: "cb-escalation-group"
+
+  # ── Redis ─────────────────────────────────────────────────────
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  REDIS_PROMPT_TTL_HOURS: "24"
+  REDIS_EMBEDDING_TTL_HOURS: "168"
+
+  # ── Elasticsearch (Hybrid Search) ─────────────────────────────
+  ELASTICSEARCH_URIS: "http://elasticsearch:9200"
+  ELASTICSEARCH_INDEX: "cb_fixes"
+
+  # ── OPA Governance ────────────────────────────────────────────
+  OPA_URL: "http://opa:8181"
+  OPA_POLICY: "cb/governance"
+  OPA_ENABLED: "true"
+
+  # ── Ollama (Local LLM) ────────────────────────────────────────
+  OLLAMA_BASE_URL: "http://ollama:11434"
+  OLLAMA_MODEL_DEFAULT: "llama3:8b"
+  OLLAMA_ENABLED: "true"
+  LLM_ROUTE_LOW_TO_LOCAL: "true"
+
+  # ── Observability: OpenTelemetry → Tempo ──────────────────────
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://tempo:4318/v1/traces"
   OTEL_ENABLED: "true"
-  SCANNER_POLL_INTERVAL_MS: "300000"
+
+  # ── Observability: Prometheus / Grafana ───────────────────────
+  PROMETHEUS_URL: "http://prometheus:9090"
+  GRAFANA_URL: "http://grafana:3000"
+
+  # ── AI Models ─────────────────────────────────────────────────
   AGENT_PRIMARY_MODEL: "gpt-4o"
   AGENT_FALLBACK_MODEL: "claude-sonnet-4-6"
+
+  # ── Service URLs ──────────────────────────────────────────────
+  EMBEDDER_URL: "http://cb-python-embedder:8090"
+  MCP_SERVER_URL: "http://cb-mcp-server:8086"
+
+  # ── Patcher ───────────────────────────────────────────────────
+  PATCHER_REPO_ROOT: "/workspace/repo"
+  PATCHER_BUILD_TIMEOUT_MINUTES: "10"
+
+  # ── Notifications ─────────────────────────────────────────────
+  DATADOG_ENABLED: "false"
+  DATADOG_SITE: "datadoghq.com"
+  DATADOG_ENV: "local"
+  JIRA_ENABLED: "false"
+  JIRA_BASE_URL: "https://your-org.atlassian.net"
+  JIRA_PROJECT_KEY: "CB"
+  TEAMS_ENABLED: "false"
+  TEAMS_WEBHOOK_URL: ""
+
+  # ── Scanner ───────────────────────────────────────────────────
+  SCANNER_POLL_INTERVAL_MS: "300000"
+  SCANNER_PROJECTS: "kafka-micro-lab"
+
+  # ── Vault (disabled by default) ───────────────────────────────
+  VAULT_URI: "http://vault:8200"
+  VAULT_ENABLED: "false"
+  SPRING_CLOUD_VAULT_ENABLED: "false"

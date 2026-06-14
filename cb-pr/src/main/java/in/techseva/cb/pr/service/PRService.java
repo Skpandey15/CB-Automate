@@ -12,8 +12,9 @@ import in.techseva.cb.core.service.AuditService;
 import in.techseva.cb.pr.client.GitHubEnterpriseClient;
 import in.techseva.cb.pr.client.GitHubEnterpriseClient.GitPR;
 import in.techseva.cb.pr.client.Version1Client;
+import in.techseva.cb.pr.kafka.FeedbackKafkaPublisher;
+import in.techseva.cb.pr.service.OpaGovernanceService.GovernanceResult;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
@@ -36,6 +37,8 @@ public class PRService {
     private final GitHubEnterpriseClient githubClient;
     private final Version1Client version1Client;
     private final OntologyMapper ontologyMapper;
+    private final OpaGovernanceService opaGovernance;
+    private final FeedbackKafkaPublisher feedbackPublisher;
     private final FixRepository fixRepo;
     private final VulnerabilityRepository vulnerabilityRepo;
     private final ApplicationEventPublisher eventPublisher;
@@ -48,6 +51,8 @@ public class PRService {
     public PRService(GitHubEnterpriseClient githubClient,
                      Version1Client version1Client,
                      OntologyMapper ontologyMapper,
+                     OpaGovernanceService opaGovernance,
+                     FeedbackKafkaPublisher feedbackPublisher,
                      FixRepository fixRepo,
                      VulnerabilityRepository vulnerabilityRepo,
                      ApplicationEventPublisher eventPublisher,
@@ -59,6 +64,8 @@ public class PRService {
         this.githubClient = githubClient;
         this.version1Client = version1Client;
         this.ontologyMapper = ontologyMapper;
+        this.opaGovernance = opaGovernance;
+        this.feedbackPublisher = feedbackPublisher;
         this.fixRepo = fixRepo;
         this.vulnerabilityRepo = vulnerabilityRepo;
         this.eventPublisher = eventPublisher;
@@ -74,19 +81,29 @@ public class PRService {
     public void onFixValidated(FixValidatedEvent event) {
         Vulnerability vuln = event.getVulnerability();
         Fix fix = event.getFix();
-        log.info("PR service raising PR for fix={} vuln={}", fix.id(), vuln.id());
+        log.info("PR service: OPA check + PR creation for fix={} vuln={}", fix.id(), vuln.id());
+
+        // OPA governance gate — must pass before PR is created
+        GovernanceResult governance = opaGovernance.evaluate(vuln, fix);
+        if (!governance.allowed()) {
+            log.warn("OPA governance BLOCKED PR for fix={}: violations={}", fix.id(), governance.violations());
+            auditService.log(fix.id(), "Fix", "OPA_BLOCKED", "pr-service",
+                    Map.of("violations", governance.violations()));
+            feedbackPublisher.publishRejected(fix, vuln, governance.violations());
+            vulnerabilityRepo.save(vuln.withStatus(VulnerabilityStatus.FAILED));
+            return;
+        }
 
         try {
             String branchName = buildBranchName(vuln, fix);
             commitAndPush(branchName, vuln, fix);
 
-            String prBody = buildPrBody(vuln, fix);
+            String prBody = buildPrBody(vuln, fix, governance);
             String prTitle = buildPrTitle(vuln);
 
             GitPR pr = githubClient.createPullRequest(repoOwner, repoName, branchName, prTitle, prBody);
             if (pr == null) throw new RuntimeException("GitHub returned null PR");
 
-            // Create Version1 ticket if not already exists
             String v1TaskId = vuln.version1TaskId();
             if (v1TaskId == null) {
                 v1TaskId = version1Client.createSecurityTask(
@@ -105,6 +122,9 @@ public class PRService {
                     Map.of("prNumber", pr.number(), "prUrl", pr.htmlUrl()));
             eventPublisher.publishEvent(new PRRaisedEvent(this, vulnUpdated, updated));
 
+            // Publish ACCEPTED feedback — PR was successfully raised (human will review)
+            feedbackPublisher.publishAccepted(updated, vulnUpdated);
+
         } catch (Exception e) {
             log.error("PR creation failed for fix={}: {}", fix.id(), e.getMessage(), e);
             auditService.log(fix.id(), "Fix", "PR_FAILED", "pr-service",
@@ -112,8 +132,7 @@ public class PRService {
         }
     }
 
-    private void commitAndPush(String branchName, Vulnerability vuln, Fix fix)
-            throws Exception {
+    private void commitAndPush(String branchName, Vulnerability vuln, Fix fix) throws Exception {
         File repoDir = new File(repoRoot);
         try (Repository repo = new FileRepositoryBuilder()
                 .setGitDir(new File(repoDir, ".git"))
@@ -151,21 +170,23 @@ public class PRService {
                 " (severity: " + vuln.severity() + ")";
     }
 
-    private String buildPrBody(Vulnerability vuln, Fix fix) {
-        return "## Compliance Buddy — Automated Security Fix\n\n" +
-                "| Field | Value |\n" +
-                "|-------|-------|\n" +
-                "| **CWE** | " + vuln.cweId() + " |\n" +
-                "| **Severity** | " + vuln.severity() + " |\n" +
-                "| **OWASP** | " + vuln.owaspCategory() + " |\n" +
-                "| **File** | `" + vuln.filePath() + "` line " + vuln.lineNo() + " |\n" +
-                "| **Confidence** | " + String.format("%.0f%%", fix.confidence() * 100) + " |\n" +
-                "| **Strategy** | " + fix.strategy() + " |\n" +
-                "| **Model** | " + fix.llmModel() + " |\n\n" +
-                "### Explanation\n\n" + fix.explanation() + "\n\n" +
-                "### Traceability (JSON-LD)\n\n```json\n" +
-                ontologyMapper.vulnerabilityToJsonLdString(vuln) + "\n```\n\n" +
-                "---\n*Generated by [Compliance Buddy](https://techseva.in/cb) — " +
-                "do not merge without human review*";
+    private String buildPrBody(Vulnerability vuln, Fix fix, GovernanceResult governance) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("## Compliance Buddy — Automated Security Fix\n\n");
+        sb.append("| Field | Value |\n|-------|-------|\n");
+        sb.append("| **CWE** | ").append(vuln.cweId()).append(" |\n");
+        sb.append("| **Severity** | ").append(vuln.severity()).append(" |\n");
+        sb.append("| **OWASP** | ").append(vuln.owaspCategory()).append(" |\n");
+        sb.append("| **File** | `").append(vuln.filePath()).append("` line ").append(vuln.lineNo()).append(" |\n");
+        sb.append("| **Confidence** | ").append(String.format("%.0f%%", fix.confidence() * 100)).append(" |\n");
+        sb.append("| **Strategy** | ").append(fix.strategy()).append(" |\n");
+        sb.append("| **Model** | ").append(fix.llmModel()).append(" |\n");
+        sb.append("| **OPA** | ✅ Passed (").append(governance.violations().size()).append(" violations) |\n\n");
+        sb.append("### Explanation\n\n").append(fix.explanation()).append("\n\n");
+        sb.append("### Traceability (JSON-LD)\n\n```json\n");
+        sb.append(ontologyMapper.vulnerabilityToJsonLdString(vuln));
+        sb.append("\n```\n\n---\n*Generated by [Compliance Buddy](https://techseva.in/cb) — ");
+        sb.append("do not merge without human review*");
+        return sb.toString();
     }
 }

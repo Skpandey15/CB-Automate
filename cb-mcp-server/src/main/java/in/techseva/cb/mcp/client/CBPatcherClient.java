@@ -43,4 +43,20 @@ public class CBPatcherClient {
             throw new RuntimeException("Patcher build error: " + e.getMessage(), e);
         }
     }
+
+    public String triggerRollback(String fixId, String branchName) {
+        log.info("Triggering rollback fixId={} branch={}", fixId, branchName);
+        try {
+            String response = restClient.post()
+                .uri("/api/patcher/rollback")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("fixId", fixId, "branchName", branchName))
+                .retrieve()
+                .body(String.class);
+            return response != null ? response : "{\"status\":\"rollback-triggered\"}";
+        } catch (Exception e) {
+            log.error("Rollback failed for fixId={}: {}", fixId, e.getMessage());
+            throw new RuntimeException("Patcher rollback error: " + e.getMessage(), e);
+        }
+    }
 }

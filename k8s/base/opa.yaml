@@ -1,0 +1,146 @@
+---
+# OPA Rego policy bundle
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opa-policies
+  namespace: cb-system
+data:
+  patch_governance.rego: |
+    package cb.governance
+
+    import future.keywords.if
+    import future.keywords.contains
+
+    default allow = false
+
+    # Allow if no violations found
+    allow if {
+        count(violations) == 0
+    }
+
+    violations contains msg if {
+        input.patch != null
+        contains(input.patch, "System.exit(")
+        msg := "POLICY_VIOLATION: System.exit() detected in patch — use proper exception handling instead"
+    }
+
+    violations contains msg if {
+        input.patch != null
+        contains(input.patch, "Runtime.getRuntime().exec(")
+        msg := "POLICY_VIOLATION: Runtime.exec() detected — potential command injection risk"
+    }
+
+    violations contains msg if {
+        input.patch != null
+        # Detect SQL string concatenation patterns
+        regex.match(`"\\s*\\+\\s*[a-zA-Z]`, input.patch)
+        contains(lower(input.patch), "select")
+        msg := "POLICY_VIOLATION: SQL string concatenation detected — use PreparedStatement with parameters"
+    }
+
+    violations contains msg if {
+        input.patch != null
+        regex.match(`(?i)password\\s*=\\s*"[^${\"][^"]{3,}"`, input.patch)
+        msg := "POLICY_VIOLATION: Hardcoded password detected in patch"
+    }
+
+    violations contains msg if {
+        input.patch != null
+        regex.match(`(?i)secret\\s*=\\s*"[^${\"][^"]{3,}"`, input.patch)
+        msg := "POLICY_VIOLATION: Hardcoded secret detected in patch"
+    }
+
+    violations contains msg if {
+        input.patch != null
+        contains(input.patch, "e.printStackTrace()")
+        msg := "POLICY_ADVISORY: e.printStackTrace() detected — prefer structured logging"
+    }
+
+    violations contains msg if {
+        input.cweId == "CWE-89"
+        input.patch != null
+        not contains(input.patch, "PreparedStatement")
+        not contains(input.patch, "@Param")
+        not contains(input.patch, "NamedParameterJdbcTemplate")
+        msg := "POLICY_VIOLATION: CWE-89 fix must use PreparedStatement or parameterised query"
+    }
+
+    violations contains msg if {
+        input.cweId == "CWE-79"
+        input.patch != null
+        not contains(input.patch, "HtmlUtils.htmlEscape")
+        not contains(input.patch, "StringEscapeUtils")
+        not contains(input.patch, "Encode.forHtml")
+        not contains(input.patch, "@ResponseBody")
+        msg := "POLICY_VIOLATION: CWE-79 fix must include HTML encoding (HtmlUtils.htmlEscape or equivalent)"
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opa
+  namespace: cb-system
+  labels:
+    app: opa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opa
+  template:
+    metadata:
+      labels:
+        app: opa
+    spec:
+      containers:
+        - name: opa
+          image: openpolicyagent/opa:0.64.1-rootless
+          args:
+            - run
+            - --server
+            - --log-format=json
+            - --log-level=info
+            - --addr=:8181
+            - /policies
+          ports:
+            - containerPort: 8181
+          volumeMounts:
+            - name: policies
+              mountPath: /policies
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8181
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8181
+            initialDelaySeconds: 10
+            periodSeconds: 20
+      volumes:
+        - name: policies
+          configMap:
+            name: opa-policies
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opa
+  namespace: cb-system
+spec:
+  selector:
+    app: opa
+  ports:
+    - port: 8181
+      targetPort: 8181

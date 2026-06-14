@@ -27,6 +27,15 @@ github:
 patcher:
   api-url: ${PATCHER_API_URL:http://cb-patcher:8083}
 
+tempo:
+  url: ${TEMPO_URL:http://tempo:3200}
+
+prometheus:
+  url: ${PROMETHEUS_URL:http://prometheus:9090}
+
+qdrant:
+  http-url: ${QDRANT_HTTP_URL:http://qdrant:6333}
+
 management:
   endpoints:
     web:

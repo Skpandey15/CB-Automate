@@ -13,6 +13,7 @@ dependencies {
     implementation 'io.micrometer:micrometer-registry-datadog'
     implementation 'io.micrometer:micrometer-tracing-bridge-otel'
     implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
+    implementation 'org.springframework.kafka:spring-kafka'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     testImplementation "org.testcontainers:junit-jupiter:${testcontainersVersion}"

@@ -4,6 +4,16 @@ spring:
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017/compliance_buddy}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_NOTIFIER_GROUP_ID:cb-notifier-group}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "in.techseva.cb.core.kafka"
   cache:
     type: caffeine
   autoconfigure:
@@ -30,6 +40,17 @@ server:
 notifier:
   team-emails: ${NOTIFIER_TEAM_EMAILS:}
   from-email: ${NOTIFIER_FROM_EMAIL:cb-bot@techseva.in}
+
+jira:
+  enabled: ${JIRA_ENABLED:false}
+  base-url: ${JIRA_BASE_URL:}
+  email: ${JIRA_EMAIL:}
+  api-token: ${JIRA_API_TOKEN:}
+  project-key: ${JIRA_PROJECT_KEY:CB}
+
+teams:
+  enabled: ${TEAMS_ENABLED:false}
+  webhook-url: ${TEAMS_WEBHOOK_URL:}
 
 datadog:
   api-key: ${DATADOG_API_KEY:}

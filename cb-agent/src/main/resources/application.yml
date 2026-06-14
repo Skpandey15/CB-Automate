@@ -4,8 +4,36 @@ spring:
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017/compliance_buddy}
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 4
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        spring.json.add.type.headers: false
+        enable.idempotence: true
+    consumer:
+      group-id: ${KAFKA_AGENT_GROUP_ID:cb-agent-group}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "in.techseva.cb.core.kafka"
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
   cache:
-    type: caffeine
+    type: redis
   autoconfigure:
     exclude:
       - org.springframework.boot.actuate.autoconfigure.metrics.export.datadog.DatadogMetricsExportAutoConfiguration
@@ -31,6 +59,12 @@ spring:
           model: claude-sonnet-4-6
           temperature: 0.1
           max-tokens: 4096
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        options:
+          model: ${OLLAMA_MODEL_DEFAULT:llama3:8b}
+          temperature: 0.1
     vectorstore:
       qdrant:
         host: ${QDRANT_HOST:localhost}
@@ -46,6 +80,11 @@ agent:
   fallback-model: ${AGENT_FALLBACK_MODEL:claude-sonnet-4-6}
   mcp:
     server-url: ${MCP_SERVER_URL:http://localhost:8086}
+
+ollama:
+  model:
+    low-severity: ${OLLAMA_MODEL_LOW:llama3:8b}
+    medium-severity: ${OLLAMA_MODEL_MEDIUM:qwen2:7b}
 
 embedder:
   url: ${EMBEDDER_URL:http://localhost:8090}
@@ -80,7 +119,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       probes:
@@ -91,4 +130,4 @@ management:
       probability: 1.0
   otlp:
     tracing:
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://jaeger:4318/v1/traces}
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://tempo:4318/v1/traces}
