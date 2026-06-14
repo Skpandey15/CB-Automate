@@ -25,7 +25,7 @@ spec:
             - containerPort: 8089
           envFrom:
             - configMapRef:
-                name: cb-config
+                name: cb-common-config
             - secretRef:
                 name: cb-secrets
           env:

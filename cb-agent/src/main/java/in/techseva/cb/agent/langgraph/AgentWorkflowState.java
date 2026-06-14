@@ -21,7 +21,7 @@ public class AgentWorkflowState extends AgentState {
     public static final String INPUT_TOKENS  = "inputTokens";
     public static final String OUTPUT_TOKENS = "outputTokens";
 
-    // Schema required by StateGraph constructor — all fields use last-value-wins semantics
+    @SuppressWarnings("deprecation")
     public static final Map<String, Channel<?>> SCHEMA = Map.of(
             VULNERABILITY, Channel.of((Object o, Object n) -> n),
             CONTEXT_DOCS,  Channel.of((Object o, Object n) -> n),
@@ -40,7 +40,7 @@ public class AgentWorkflowState extends AgentState {
     }
 
     public Optional<Vulnerability> vulnerability() {
-        return value(VULNERABILITY, Vulnerability.class);
+        return Optional.ofNullable((Vulnerability) data().get(VULNERABILITY));
     }
 
     @SuppressWarnings("unchecked")
@@ -49,7 +49,7 @@ public class AgentWorkflowState extends AgentState {
     }
 
     public Optional<String> generatedFix() {
-        return value(GENERATED_FIX, String.class);
+        return Optional.ofNullable((String) data().get(GENERATED_FIX));
     }
 
     public String llmModel() {
@@ -72,7 +72,7 @@ public class AgentWorkflowState extends AgentState {
     }
 
     public Optional<String> error() {
-        return value(ERROR, String.class);
+        return Optional.ofNullable((String) data().get(ERROR));
     }
 
     public long inputTokens() {

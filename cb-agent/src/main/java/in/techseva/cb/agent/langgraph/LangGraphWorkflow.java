@@ -2,6 +2,8 @@ package in.techseva.cb.agent.langgraph;
 
 import in.techseva.cb.core.domain.Vulnerability;
 import org.bsc.langgraph4j.StateGraph;
+import org.bsc.langgraph4j.action.AsyncNodeAction;
+import org.bsc.langgraph4j.action.NodeAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -9,11 +11,9 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 import static org.bsc.langgraph4j.StateGraph.END;
 import static org.bsc.langgraph4j.StateGraph.START;
-import static org.bsc.langgraph4j.utils.CollectionsUtils.node_async;
 
 /**
  * Wires the LangGraph4j multi-agent workflow:
@@ -45,11 +45,11 @@ public class LangGraphWorkflow {
 
     public AgentWorkflowState run(Vulnerability vuln) throws Exception {
         var compiled = new StateGraph<>(AgentWorkflowState.SCHEMA, AgentWorkflowState::new)
-                .addNode("planner",   node_async(plannerNode))
-                .addNode("retriever", node_async(retrieverNode))
-                .addNode("generator", node_async(generatorNode))
-                .addNode("validator", node_async(validatorNode))
-                .addNode("reviewer",  node_async(reviewNode))
+                .addNode("planner",   async(plannerNode))
+                .addNode("retriever", async(retrieverNode))
+                .addNode("generator", async(generatorNode))
+                .addNode("validator", async(validatorNode))
+                .addNode("reviewer",  async(reviewNode))
                 .addEdge(START,       "planner")
                 .addEdge("planner",   "retriever")
                 .addEdge("retriever", "generator")
@@ -70,12 +70,24 @@ public class LangGraphWorkflow {
         initialState.put(AgentWorkflowState.VULNERABILITY, vuln);
         initialState.put(AgentWorkflowState.RETRY_COUNT, 0);
 
-        Map<String, Object> result = compiled.invoke(initialState)
-                .get(120, TimeUnit.SECONDS);
-
-        AgentWorkflowState finalState = new AgentWorkflowState(result);
+        AgentWorkflowState finalState = compiled.invoke(initialState)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Workflow produced no output for vuln=" + vuln.id()));
         log.info("LangGraph workflow complete: vuln={} model={} confidence={} validationOk={}",
                 vuln.id(), finalState.llmModel(), finalState.confidence(), finalState.validationOk());
         return finalState;
+    }
+
+    // Wraps a synchronous NodeAction into the AsyncNodeAction required by StateGraph.addNode()
+    private static AsyncNodeAction<AgentWorkflowState> async(NodeAction<AgentWorkflowState> node) {
+        return state -> {
+            try {
+                return CompletableFuture.completedFuture(node.apply(state));
+            } catch (Exception e) {
+                CompletableFuture<Map<String, Object>> failed = new CompletableFuture<>();
+                failed.completeExceptionally(e);
+                return failed;
+            }
+        };
     }
 }

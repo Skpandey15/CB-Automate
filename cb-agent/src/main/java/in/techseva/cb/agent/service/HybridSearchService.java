@@ -43,10 +43,13 @@ public class HybridSearchService {
 
     private List<ScoredDoc> qdrantSearch(String cweId, String query) {
         try {
-            List<Document> docs = qdrantRag.retrieveSimilar(cweId + " " + query, TOP_K);
-            var result = new ArrayList<ScoredDoc>(docs.size());
-            for (int i = 0; i < docs.size(); i++) {
-                result.add(new ScoredDoc(docs.get(i), i + 1));
+            List<QdrantRAGService.FixSummary> summaries = qdrantRag.retrieveSimilarFixes(cweId, query);
+            var result = new ArrayList<ScoredDoc>(summaries.size());
+            for (int i = 0; i < summaries.size(); i++) {
+                QdrantRAGService.FixSummary s = summaries.get(i);
+                Document doc = new Document(s.explanation() + "\n" + s.patchDiff(),
+                        Map.of("cweId", s.cweId(), "strategy", s.strategy()));
+                result.add(new ScoredDoc(doc, i + 1));
             }
             return result;
         } catch (Exception e) {
