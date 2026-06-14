@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: cb-system
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - mongodb.yaml
+  - qdrant.yaml
+  - jaeger.yaml
+  - cb-python-embedder.yaml
+  - cb-api.yaml
+  - cb-services.yaml
+  - ingress.yaml
+  - secrets.yaml
+  - sonarqube.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: compliance-buddy
+  app.kubernetes.io/managed-by: kustomize

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gradle wrapper *)",
+      "PowerShell(docker --version)",
+      "PowerShell(kubectl version --client 2>&1)",
+      "PowerShell(head -2)",
+      "PowerShell(k3d version 2>&1)",
+      "PowerShell(java -version 2>&1)",
+      "PowerShell(try { Invoke-WebRequest \"https://repo1.maven.org/maven2/org/springframework/ai/spring-ai-starter-model-openai/1.0.0/spring-ai-starter-model-openai-1.0.0.pom\" -Method Head -UseBasicParsing | Select-Object StatusCode } catch { $_.Exception.Response.StatusCode })",
+      "PowerShell(Invoke-RestMethod \"https://search.maven.org/solrsearch/select?q=g:org.springframework.ai+AND+v:1.0.0&rows=50&wt=json&start=0\" | Select-Object -ExpandProperty response | Select-Object -ExpandProperty docs | Select-Object -ExpandProperty a | Where-Object { $_ -match \"core|chat|client\" } | Sort-Object)",
+      "PowerShell(docker run --rm -v \"${env:TEMP}:/jars\" eclipse-temurin:17-jdk-jammy bash -c \"jar tf /jars/mcp-sdk.jar | grep 'McpClient\\\\|McpSyncClient\\\\|CallTool\\\\|SseClient' | head -20\")"
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: cb-patcher
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/compliance_buddy}
+  cache:
+    type: caffeine
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.actuate.autoconfigure.metrics.export.datadog.DatadogMetricsExportAutoConfiguration
+  cloud:
+    vault:
+      enabled: ${VAULT_ENABLED:false}
+
+server:
+  port: 8083
+
+patcher:
+  repo-root: ${PATCHER_REPO_ROOT:/workspace/repo}
+  build-timeout-minutes: ${PATCHER_BUILD_TIMEOUT_MINUTES:10}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  tracing:
+    enabled: ${OTEL_ENABLED:true}
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://jaeger:4318/v1/traces}

@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cb-api
+  namespace: cb-system
+  labels:
+    app: cb-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cb-api
+  template:
+    metadata:
+      labels:
+        app: cb-api
+    spec:
+      securityContext:
+        runAsUser: 1001
+        runAsNonRoot: true
+      containers:
+        - name: cb-api
+          image: cb-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: cb-common-config
+          env:
+            - name: CB_API_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: CB_API_KEYS
+            - name: VAULT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: VAULT_TOKEN
+          resources:
+            requests:
+              memory: "384Mi"
+              cpu: "250m"
+            limits:
+              memory: "768Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 45
+            periodSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cb-api
+  namespace: cb-system
+spec:
+  selector:
+    app: cb-api
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: cb-api-hpa
+  namespace: cb-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: cb-api
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

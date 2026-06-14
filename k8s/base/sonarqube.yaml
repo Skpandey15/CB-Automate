@@ -1,0 +1,101 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cb-sonarqube-data
+  namespace: cb-system
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cb-sonarqube
+  namespace: cb-system
+  labels:
+    app: cb-sonarqube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cb-sonarqube
+  template:
+    metadata:
+      labels:
+        app: cb-sonarqube
+    spec:
+      initContainers:
+        - name: init-sysctl
+          image: busybox
+          command: ['sysctl', '-w', 'vm.max_map_count=262144']
+          securityContext:
+            privileged: true
+      containers:
+        - name: sonarqube
+          image: sonarqube:10-community
+          ports:
+            - containerPort: 9000
+          env:
+            - name: SONAR_WEB_CONTEXT
+              value: /sonar
+            - name: SONAR_WEB_JAVAOPTS
+              value: "-Xmx512m -Xms256m"
+            - name: SONAR_CE_JAVAOPTS
+              value: "-Xmx512m -Xms256m"
+            - name: SONAR_SEARCH_JAVAOPTS
+              value: "-Xmx512m -Xms256m"
+          volumeMounts:
+            - name: data
+              mountPath: /opt/sonarqube/data
+              subPath: data
+            - name: data
+              mountPath: /opt/sonarqube/logs
+              subPath: logs
+            - name: data
+              mountPath: /opt/sonarqube/extensions
+              subPath: extensions
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "500m"
+            limits:
+              memory: "3Gi"
+              cpu: "1500m"
+          startupProbe:
+            httpGet:
+              path: /sonar/api/system/status
+              port: 9000
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /sonar/api/system/status
+              port: 9000
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /sonar/api/system/status
+              port: 9000
+            periodSeconds: 15
+            failureThreshold: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: cb-sonarqube-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cb-sonarqube
+  namespace: cb-system
+spec:
+  selector:
+    app: cb-sonarqube
+  ports:
+    - port: 9000
+      targetPort: 9000

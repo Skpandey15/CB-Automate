@@ -1,0 +1,523 @@
+# cb-scanner, cb-agent, cb-patcher, cb-pr, cb-notifier deployments
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cb-scanner
+  namespace: cb-system
+  labels:
+    app: cb-scanner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cb-scanner
+  template:
+    metadata:
+      labels:
+        app: cb-scanner
+    spec:
+      securityContext:
+        runAsUser: 1001
+        runAsNonRoot: true
+      containers:
+        - name: cb-scanner
+          image: cb-scanner:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+          envFrom:
+            - configMapRef:
+                name: cb-common-config
+          env:
+            - name: SONARQUBE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: SONARQUBE_TOKEN
+            - name: SONARQUBE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: SONARQUBE_URL
+            - name: SCANNER_PROJECTS
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: SCANNER_PROJECTS
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "300m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8081
+            initialDelaySeconds: 45
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cb-scanner
+  namespace: cb-system
+spec:
+  selector:
+    app: cb-scanner
+  ports:
+    - port: 8081
+      targetPort: 8081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cb-agent
+  namespace: cb-system
+  labels:
+    app: cb-agent
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cb-agent
+  template:
+    metadata:
+      labels:
+        app: cb-agent
+    spec:
+      securityContext:
+        runAsUser: 1001
+        runAsNonRoot: true
+      containers:
+        - name: cb-agent
+          image: cb-agent:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+          envFrom:
+            - configMapRef:
+                name: cb-common-config
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: OPENAI_API_KEY
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: ANTHROPIC_API_KEY
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8082
+            initialDelaySeconds: 45
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cb-agent
+  namespace: cb-system
+spec:
+  selector:
+    app: cb-agent
+  ports:
+    - port: 8082
+      targetPort: 8082
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cb-patcher
+  namespace: cb-system
+  labels:
+    app: cb-patcher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cb-patcher
+  template:
+    metadata:
+      labels:
+        app: cb-patcher
+    spec:
+      securityContext:
+        runAsUser: 1001
+        runAsNonRoot: true
+      containers:
+        - name: cb-patcher
+          image: cb-patcher:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8083
+          envFrom:
+            - configMapRef:
+                name: cb-common-config
+          volumeMounts:
+            - name: repo-workspace
+              mountPath: /workspace/repo
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1500m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8083
+            initialDelaySeconds: 45
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8083
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+      volumes:
+        - name: repo-workspace
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cb-patcher
+  namespace: cb-system
+spec:
+  selector:
+    app: cb-patcher
+  ports:
+    - port: 8083
+      targetPort: 8083
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cb-pr
+  namespace: cb-system
+  labels:
+    app: cb-pr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cb-pr
+  template:
+    metadata:
+      labels:
+        app: cb-pr
+    spec:
+      securityContext:
+        runAsUser: 1001
+        runAsNonRoot: true
+      containers:
+        - name: cb-pr
+          image: cb-pr:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8084
+          envFrom:
+            - configMapRef:
+                name: cb-common-config
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: GITHUB_TOKEN
+            - name: GITHUB_OWNER
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: GITHUB_OWNER
+            - name: GITHUB_REPO
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: GITHUB_REPO
+            - name: GITHUB_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: GITHUB_API_URL
+            - name: VERSION1_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: VERSION1_API_URL
+            - name: VERSION1_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: VERSION1_TOKEN
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: OPENAI_API_KEY
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: ANTHROPIC_API_KEY
+            - name: GITHUB_REVIEWER_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: GITHUB_REVIEWER_USERNAME
+          volumeMounts:
+            - name: repo-workspace
+              mountPath: /workspace/repo
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "400m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8084
+            initialDelaySeconds: 45
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8084
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+      volumes:
+        - name: repo-workspace
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cb-pr
+  namespace: cb-system
+spec:
+  selector:
+    app: cb-pr
+  ports:
+    - port: 8084
+      targetPort: 8084
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cb-notifier
+  namespace: cb-system
+  labels:
+    app: cb-notifier
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cb-notifier
+  template:
+    metadata:
+      labels:
+        app: cb-notifier
+    spec:
+      securityContext:
+        runAsUser: 1001
+        runAsNonRoot: true
+      containers:
+        - name: cb-notifier
+          image: cb-notifier:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8085
+          envFrom:
+            - configMapRef:
+                name: cb-common-config
+          env:
+            - name: SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: SMTP_HOST
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: SMTP_PORT
+            - name: SMTP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: SMTP_USERNAME
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: SMTP_PASSWORD
+            - name: NOTIFIER_TEAM_EMAILS
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: NOTIFIER_TEAM_EMAILS
+            - name: DATADOG_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: DATADOG_API_KEY
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "384Mi"
+              cpu: "200m"
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8085
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 18
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8085
+            periodSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8085
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cb-notifier
+  namespace: cb-system
+spec:
+  selector:
+    app: cb-notifier
+  ports:
+    - port: 8085
+      targetPort: 8085
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cb-mcp-server
+  namespace: cb-system
+  labels:
+    app: cb-mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cb-mcp-server
+  template:
+    metadata:
+      labels:
+        app: cb-mcp-server
+    spec:
+      securityContext:
+        runAsUser: 1001
+        runAsNonRoot: true
+      containers:
+        - name: cb-mcp-server
+          image: cb-mcp-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8086
+          envFrom:
+            - configMapRef:
+                name: cb-common-config
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: GITHUB_TOKEN
+            - name: GITHUB_OWNER
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: GITHUB_OWNER
+            - name: GITHUB_REPO
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: GITHUB_REPO
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "300m"
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8086
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 18
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8086
+            periodSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8086
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cb-mcp-server
+  namespace: cb-system
+spec:
+  selector:
+    app: cb-mcp-server
+  ports:
+    - port: 8086
+      targetPort: 8086

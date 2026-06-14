@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cb-common-config
+  namespace: cb-system
+data:
+  MONGODB_URI: "mongodb://cb-mongodb:27017/compliance_buddy"
+  EMBEDDER_URL: "http://cb-python-embedder:8090"
+  VAULT_URI: "http://vault:8200"
+  VAULT_ENABLED: "false"
+  SPRING_CLOUD_VAULT_ENABLED: "false"
+  DATADOG_ENABLED: "false"
+  DATADOG_SITE: "datadoghq.com"
+  DATADOG_ENV: "local"
+  PATCHER_REPO_ROOT: "/workspace/repo"
+  PATCHER_BUILD_TIMEOUT_MINUTES: "10"
+  MCP_SERVER_URL: "http://cb-mcp-server:8086"
+  QDRANT_HOST: "qdrant"
+  QDRANT_PORT: "6334"
+  QDRANT_COLLECTION: "cb_fixes"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4318/v1/traces"
+  OTEL_ENABLED: "true"
+  SCANNER_POLL_INTERVAL_MS: "300000"
+  AGENT_PRIMARY_MODEL: "gpt-4o"
+  AGENT_FALLBACK_MODEL: "claude-sonnet-4-6"

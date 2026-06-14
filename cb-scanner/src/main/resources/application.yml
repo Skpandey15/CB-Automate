@@ -1,0 +1,54 @@
+spring:
+  application:
+    name: cb-scanner
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/compliance_buddy}
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.actuate.autoconfigure.metrics.export.datadog.DatadogMetricsExportAutoConfiguration
+  cloud:
+    vault:
+      enabled: ${VAULT_ENABLED:false}
+
+server:
+  port: 8081
+
+sonarqube:
+  url: ${SONARQUBE_URL:http://localhost:9000}
+  token: ${SONARQUBE_TOKEN:}
+
+scanner:
+  poll-interval-ms: ${SCANNER_POLL_INTERVAL_MS:300000}
+  projects: ${SCANNER_PROJECTS:}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      sonarqube-api:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+  retry:
+    instances:
+      sonarqube-api:
+        maxAttempts: 3
+        waitDuration: 2s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  tracing:
+    enabled: ${OTEL_ENABLED:true}
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://jaeger:4318/v1/traces}

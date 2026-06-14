@@ -1,0 +1,10 @@
+rootProject.name = 'compliance-buddy'
+
+include 'cb-core'
+include 'cb-scanner'
+include 'cb-agent'
+include 'cb-patcher'
+include 'cb-pr'
+include 'cb-notifier'
+include 'cb-api'
+include 'cb-mcp-server'

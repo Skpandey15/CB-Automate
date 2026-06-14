@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: cb-core
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/compliance_buddy}
+      auto-index-creation: true
+  cache:
+    type: caffeine
+
+  cloud:
+    vault:
+      enabled: ${VAULT_ENABLED:false}
+      uri: ${VAULT_URI:http://localhost:8200}
+      token: ${VAULT_TOKEN:dev-root-token}
+      kv:
+        enabled: true
+        default-context: compliance-buddy
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  metrics:
+    export:
+      datadog:
+        enabled: ${DATADOG_ENABLED:false}
+        api-key: ${DATADOG_API_KEY:none}
+        application-key: ${DATADOG_APP_KEY:none}
+
+logging:
+  level:
+    in.techseva.cb: DEBUG
+    org.springframework.data.mongodb: WARN

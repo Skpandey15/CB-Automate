@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: cb-notifier
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/compliance_buddy}
+  cache:
+    type: caffeine
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.actuate.autoconfigure.metrics.export.datadog.DatadogMetricsExportAutoConfiguration
+  cloud:
+    vault:
+      enabled: ${VAULT_ENABLED:false}
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+server:
+  port: 8085
+
+notifier:
+  team-emails: ${NOTIFIER_TEAM_EMAILS:}
+  from-email: ${NOTIFIER_FROM_EMAIL:cb-bot@techseva.in}
+
+datadog:
+  api-key: ${DATADOG_API_KEY:}
+  site: ${DATADOG_SITE:datadoghq.com}
+  env: ${DATADOG_ENV:production}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      datadog-api:
+        slidingWindowSize: 5
+        failureRateThreshold: 60
+        waitDurationInOpenState: 30s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    mail:
+      enabled: false
+  tracing:
+    enabled: ${OTEL_ENABLED:true}
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://jaeger:4318/v1/traces}

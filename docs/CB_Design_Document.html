@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Compliance Buddy — HLD &amp; LLD</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --blue:    #1a56db;
+    --blue-lt: #dbeafe;
+    --blue-dk: #1e3a8a;
+    --green:   #16a34a;
+    --green-lt:#dcfce7;
+    --orange:  #ea580c;
+    --orange-lt:#ffedd5;
+    --red:     #dc2626;
+    --red-lt:  #fee2e2;
+    --purple:  #7c3aed;
+    --purple-lt:#ede9fe;
+    --gray:    #374151;
+    --gray-lt: #f9fafb;
+    --border:  #e5e7eb;
+    --text:    #111827;
+    --muted:   #6b7280;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.65;
+    color: var(--text);
+    background: #fff;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 50px;
+  }
+
+  /* ── Cover Page ───────────────────────────────────── */
+  .cover {
+    page-break-after: always;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 80px 0 60px;
+  }
+  .cover-badge {
+    background: var(--blue);
+    color: #fff;
+    font-size: 9pt;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 4px;
+    margin-bottom: 24px;
+  }
+  .cover h1 {
+    font-size: 38pt;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--blue-dk);
+    margin-bottom: 10px;
+  }
+  .cover h2 {
+    font-size: 18pt;
+    font-weight: 400;
+    color: var(--muted);
+    margin-bottom: 40px;
+  }
+  .cover-divider {
+    width: 60px;
+    height: 4px;
+    background: var(--blue);
+    border-radius: 2px;
+    margin-bottom: 40px;
+  }
+  .cover-meta table { border-collapse: collapse; }
+  .cover-meta td { padding: 5px 24px 5px 0; font-size: 10pt; color: var(--gray); }
+  .cover-meta td:first-child { font-weight: 600; color: var(--text); min-width: 140px; }
+  .cover-footer {
+    margin-top: auto;
+    padding-top: 60px;
+    font-size: 9pt;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    width: 100%;
+  }
+
+  /* ── TOC ─────────────────────────────────────────── */
+  .toc { page-break-after: always; }
+  .toc h2 { font-size: 16pt; color: var(--blue-dk); margin-bottom: 24px; }
+  .toc-part {
+    font-weight: 700;
+    font-size: 10.5pt;
+    color: var(--blue);
+    margin: 18px 0 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 9pt;
+  }
+  .toc a {
+    display: flex;
+    justify-content: space-between;
+    text-decoration: none;
+    color: var(--text);
+    padding: 4px 0;
+    border-bottom: 1px dotted var(--border);
+    font-size: 10pt;
+  }
+  .toc a:hover { color: var(--blue); }
+  .toc a.sub { padding-left: 20px; color: var(--muted); font-size: 9.5pt; }
+
+  /* ── Typography ──────────────────────────────────── */
+  h1 { font-size: 22pt; font-weight: 700; color: var(--blue-dk); margin: 40px 0 12px;
+       padding-bottom: 8px; border-bottom: 3px solid var(--blue); page-break-before: always; }
+  h1:first-of-type { page-break-before: avoid; }
+  h2 { font-size: 15pt; font-weight: 600; color: var(--blue-dk); margin: 32px 0 10px; }
+  h3 { font-size: 12pt; font-weight: 600; color: var(--gray); margin: 24px 0 8px; }
+  h4 { font-size: 10.5pt; font-weight: 600; color: var(--text); margin: 16px 0 6px; }
+  p  { margin-bottom: 10px; }
+  ul, ol { margin: 8px 0 12px 22px; }
+  li { margin-bottom: 4px; }
+
+  /* ── Code ────────────────────────────────────────── */
+  code {
+    font-family: 'JetBrains Mono', 'Cascadia Code', 'Courier New', monospace;
+    font-size: 9pt;
+    background: #f3f4f6;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--blue-dk);
+  }
+  pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px 18px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8.5pt;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: 12px 0 16px;
+    page-break-inside: avoid;
+  }
+  pre .kw  { color: #93c5fd; }
+  pre .st  { color: #86efac; }
+  pre .cm  { color: #6b7280; font-style: italic; }
+  pre .an  { color: #fbbf24; }
+
+  /* ── Tables ──────────────────────────────────────── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 18px;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+  th {
+    background: var(--blue-dk);
+    color: #fff;
+    font-weight: 600;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  td { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--gray-lt); }
+  tr:hover td { background: var(--blue-lt); }
+
+  /* ── Callout Boxes ───────────────────────────────── */
+  .callout {
+    border-left: 4px solid;
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin: 14px 0;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+  .callout.info    { border-color: var(--blue);   background: var(--blue-lt); }
+  .callout.success { border-color: var(--green);  background: var(--green-lt); }
+  .callout.warn    { border-color: var(--orange); background: var(--orange-lt); }
+  .callout.danger  { border-color: var(--red);    background: var(--red-lt); }
+  .callout strong  { display: block; margin-bottom: 4px; }
+
+  /* ── Status Badges ───────────────────────────────── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 8pt;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .badge-blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+  .badge-green  { background: var(--green-lt);  color: var(--green); }
+  .badge-orange { background: var(--orange-lt); color: var(--orange); }
+  .badge-red    { background: var(--red-lt);    color: var(--red); }
+  .badge-purple { background: var(--purple-lt); color: var(--purple); }
+  .badge-gray   { background: #e5e7eb;          color: var(--gray); }
+
+  /* ── Architecture Diagram ────────────────────────── */
+  .arch-box {
+    display: inline-block;
+    border: 2px solid;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 9pt;
+    font-weight: 600;
+    text-align: center;
+    min-width: 110px;
+  }
+  .arch-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 8px 0;
+  }
+  .arch-arrow {
+    font-size: 14pt;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  /* ── Flow diagram (SVG embed) ─────────────────────── */
+  .flow-container {
+    width: 100%;
+    overflow: hidden;
+    margin: 16px 0;
+    page-break-inside: avoid;
+  }
+
+  /* ── Section header with accent line ──────────────── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .section-num {
+    background: var(--blue-dk);
+    color: #fff;
+    font-weight: 700;
+    font-size: 11pt;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ── Part banner ─────────────────────────────────── */
+  .part-banner {
+    background: linear-gradient(135deg, var(--blue-dk) 0%, var(--blue) 100%);
+    color: #fff;
+    padding: 32px 36px;
+    border-radius: 10px;
+    margin: 40px 0 32px;
+    page-break-before: always;
+  }
+  .part-banner .part-label {
+    font-size: 9pt;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.8;
+    margin-bottom: 6px;
+  }
+  .part-banner h1 {
+    font-size: 24pt;
+    font-weight: 700;
+    color: #fff;
+    border: none;
+    padding: 0;
+    margin: 0;
+    page-break-before: avoid;
+  }
+  .part-banner p {
+    font-size: 11pt;
+    opacity: 0.85;
+    margin: 8px 0 0;
+  }
+
+  /* ── Print overrides ─────────────────────────────── */
+  @media print {
+    body { max-width: 100%; padding: 0; }
+    @page { margin: 18mm 18mm 20mm; size: A4; }
+    @page :first { margin: 0; }
+    h1 { page-break-before: always; }
+    .part-banner { page-break-before: always; }
+    .cover { page-break-after: always; min-height: 100vh; padding: 80px 60px 60px; }
+    .toc   { page-break-after: always; }
+    pre, table, .callout { page-break-inside: avoid; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     COVER PAGE
+═══════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-badge">Technical Design Document</div>
+  <h1>Compliance<br>Buddy</h1>
+  <h2>High-Level &amp; Low-Level Design</h2>
+  <div class="cover-divider"></div>
+  <div class="cover-meta">
+    <table>
+      <tr><td>System</td><td>Compliance Buddy (CB) — Automated Security Remediation</td></tr>
+      <tr><td>Version</td><td>1.0 — PR Review Loop Edition</td></tr>
+      <tr><td>Date</td><td>June 2026</td></tr>
+      <tr><td>Author</td><td>CB Engineering Team · skp4ml@gmail.com</td></tr>
+      <tr><td>Codebase</td><td><code>E:\CB_Automate</code></td></tr>
+      <tr><td>Runtime</td><td>k3d Kubernetes · Spring Boot 3.3.6 · Java 17</td></tr>
+      <tr><td>AI Models</td><td>GPT-4o (primary) · Claude Sonnet (fallback)</td></tr>
+      <tr><td>Repo</td><td>github.com/Skpandey15/kafka-micro-lab (target)</td></tr>
+    </table>
+  </div>
+  <div class="cover-footer">
+    CONFIDENTIAL — INTERNAL USE ONLY &nbsp;|&nbsp;
+    Compliance Buddy &copy; 2026 TechSeva.in
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     TABLE OF CONTENTS
+═══════════════════════════════════════════════════ -->
+<div class="toc">
+  <h2>Table of Contents</h2>
+
+  <div class="toc-part">Part I — High-Level Design</div>
+  <a href="#hld-overview">1. System Overview &amp; Goals</a>
+  <a href="#hld-arch">2. Architecture Overview</a>
+  <a href="#hld-components">3. Service Catalogue</a>
+  <a href="#hld-pipeline">4. End-to-End Pipeline</a>
+  <a href="#hld-review">5. Three-Reviewer PR Review Loop</a>
+  <a href="#hld-infra">6. Infrastructure &amp; Deployment</a>
+  <a href="#hld-security">7. Security Model</a>
+  <a href="#hld-resilience">8. Resilience &amp; Fault Tolerance</a>
+
+  <div class="toc-part">Part II — Low-Level Design</div>
+  <a href="#lld-data">9. Data Models</a>
+  <a href="#lld-statemachine">10. State Machines</a>
+  <a href="#lld-scanner">11. cb-scanner</a>
+  <a href="#lld-agent">12. cb-agent</a>
+  <a href="#lld-patcher">13. cb-patcher</a>
+  <a href="#lld-pr">14. cb-pr &amp; AIReviewService</a>
+  <a href="#lld-poller">15. ReviewFeedbackPollerService</a>
+  <a href="#lld-prompt">16. Prompt Engineering</a>
+  <a href="#lld-api">17. cb-api REST Endpoints</a>
+  <a href="#lld-notifier">18. cb-notifier</a>
+  <a href="#lld-k8s">19. Kubernetes Manifests</a>
+  <a href="#lld-patterns">20. Key Patterns &amp; Gotchas</a>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     PART I — HIGH-LEVEL DESIGN
+═══════════════════════════════════════════════════ -->
+<div class="part-banner">
+  <div class="part-label">Part I</div>
+  <h1>High-Level Design</h1>
+  <p>System goals, architectural decisions, component overview, and the end-to-end pipeline</p>
+</div>
+
+<!-- 1. System Overview -->
+<h1 id="hld-overview">1. System Overview &amp; Goals</h1>
+
+<h2>1.1 Purpose</h2>
+<p>
+  Compliance Buddy (CB) is an <strong>autonomous security remediation pipeline</strong> that:
+</p>
+<ol>
+  <li>Continuously scans Java codebases via SonarQube for security vulnerabilities (CWEs, OWASP Top 10).</li>
+  <li>Uses GPT-4o to generate a code patch (unified diff) that remediates each vulnerability.</li>
+  <li>Applies the patch to a local clone of the repository, runs build validation, and pushes a PR to GitHub.</li>
+  <li>Conducts a <strong>3-reviewer AI+human code review loop</strong>: GitHub Copilot, a configured human reviewer, and CB's own GPT-4o self-review with ACCEPT/REJECT checkboxes.</li>
+  <li>On rejection, incorporates reviewer feedback into a re-generated fix — closing the remediation loop automatically.</li>
+</ol>
+
+<div class="callout success">
+  <strong>✅ End-to-end tested and live</strong>
+  The full pipeline from SonarQube scan → GPT-4o fix → validated patch → PR creation → CB review comment → ACCEPT/REJECT polling is operational on the kafka-micro-lab target repository.
+</div>
+
+<h2>1.2 Design Goals</h2>
+<table>
+  <thead><tr><th>Goal</th><th>Design Decision</th></tr></thead>
+  <tbody>
+    <tr><td>Zero human toil for routine CVEs</td><td>Fully automated: scanner → LLM → patch → PR with no human in the loop until review time</td></tr>
+    <tr><td>No blocking in schedulers</td><td>GitHub API + GPT-4o calls run in <code>CompletableFuture.runAsync()</code> — scheduler thread returns immediately</td></tr>
+    <tr><td>Cross-pod communication</td><td>MongoDB as the inter-service message bus; each service polls its own status slice (Spring events are in-process only)</td></tr>
+    <tr><td>Reviewer feedback loop</td><td>Rejection reason stored in <code>cb_review_feedbacks</code>; cb-agent reads it before re-generating the fix</td></tr>
+    <tr><td>Resilience</td><td>Resilience4j circuit breaker + retry on all LLM and GitHub API calls; 10s connect / 30s read timeouts on RestClient</td></tr>
+    <tr><td>Local dev &amp; CI parity</td><td>Entire stack (SonarQube, MongoDB, all 8 services) runs in k3d on a developer laptop</td></tr>
+  </tbody>
+</table>
+
+<h2>1.3 Non-Goals (v1)</h2>
+<ul>
+  <li>Multi-language support (Java only in v1)</li>
+  <li>Auto-merge without human ACCEPT (human must tick the checkbox)</li>
+  <li>SonarQube auto-scanner triggering (scans are scheduled; on-demand via REST API)</li>
+</ul>
+
+<!-- 2. Architecture -->
+<h1 id="hld-arch">2. Architecture Overview</h1>
+
+<h2>2.1 High-Level Architecture</h2>
+
+<div class="flow-container">
+<svg viewBox="0 0 820 460" xmlns="http://www.w3.org/2000/svg" width="100%" font-family="Inter,sans-serif" font-size="10">
+
+  <!-- Background Zones -->
+  <rect x="10" y="10" width="800" height="440" rx="12" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+
+  <!-- External zone -->
+  <rect x="20" y="20" width="180" height="420" rx="8" fill="#fff7ed" stroke="#fdba74" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="110" y="42" text-anchor="middle" font-size="9" font-weight="600" fill="#ea580c" letter-spacing="0.06em">EXTERNAL</text>
+
+  <!-- k8s zone -->
+  <rect x="220" y="20" width="580" height="420" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="510" y="42" text-anchor="middle" font-size="9" font-weight="600" fill="#1d4ed8" letter-spacing="0.06em">k3d KUBERNETES — NAMESPACE: cb-system</text>
+
+  <!-- SonarQube -->
+  <rect x="30" y="60" width="160" height="52" rx="6" fill="#fff" stroke="#fb923c" stroke-width="2"/>
+  <text x="110" y="80" text-anchor="middle" font-weight="600" fill="#ea580c">SonarQube</text>
+  <text x="110" y="96" text-anchor="middle" font-size="8.5" fill="#6b7280">cb-sonarqube:9000</text>
+  <text x="110" y="108" text-anchor="middle" font-size="8" fill="#9ca3af">VULNERABILITY,BUG,CODE_SMELL</text>
+
+  <!-- GitHub -->
+  <rect x="30" y="140" width="160" height="52" rx="6" fill="#fff" stroke="#fb923c" stroke-width="2"/>
+  <text x="110" y="160" text-anchor="middle" font-weight="600" fill="#ea580c">GitHub</text>
+  <text x="110" y="176" text-anchor="middle" font-size="8.5" fill="#6b7280">api.github.com</text>
+  <text x="110" y="188" text-anchor="middle" font-size="8" fill="#9ca3af">PRs · Reviews · Webhooks</text>
+
+  <!-- OpenAI -->
+  <rect x="30" y="220" width="160" height="52" rx="6" fill="#fff" stroke="#fb923c" stroke-width="2"/>
+  <text x="110" y="240" text-anchor="middle" font-weight="600" fill="#ea580c">OpenAI GPT-4o</text>
+  <text x="110" y="256" text-anchor="middle" font-size="8.5" fill="#6b7280">api.openai.com</text>
+  <text x="110" y="268" text-anchor="middle" font-size="8" fill="#9ca3af">Fix Gen · PR Review</text>
+
+  <!-- Datadog -->
+  <rect x="30" y="300" width="160" height="40" rx="6" fill="#fff" stroke="#fb923c" stroke-width="2"/>
+  <text x="110" y="323" text-anchor="middle" font-weight="600" fill="#ea580c">Datadog / SMTP</text>
+
+  <!-- Mongo -->
+  <rect x="550" y="55" width="140" height="360" rx="6" fill="#f0fdf4" stroke="#4ade80" stroke-width="2"/>
+  <text x="620" y="77" text-anchor="middle" font-size="9" font-weight="700" fill="#16a34a">MongoDB</text>
+  <text x="620" y="91" text-anchor="middle" font-size="8" fill="#6b7280">cb-mongodb:27017</text>
+  <text x="620" y="107" text-anchor="middle" font-size="8.5" fill="#374151">cb_vulnerabilities</text>
+  <text x="620" y="121" text-anchor="middle" font-size="8.5" fill="#374151">cb_fixes</text>
+  <text x="620" y="135" text-anchor="middle" font-size="8.5" fill="#374151">cb_audit_events</text>
+  <text x="620" y="149" text-anchor="middle" font-size="8.5" fill="#374151">cb_review_sessions</text>
+  <text x="620" y="163" text-anchor="middle" font-size="8.5" fill="#374151">cb_review_feedbacks</text>
+  <text x="620" y="185" text-anchor="middle" font-size="8" fill="#9ca3af">Event Bus &amp; State Store</text>
+
+  <!-- cb-scanner -->
+  <rect x="230" y="55" width="130" height="50" rx="6" fill="#fff" stroke="#3b82f6" stroke-width="2"/>
+  <text x="295" y="76" text-anchor="middle" font-weight="600" fill="#1d4ed8">cb-scanner</text>
+  <text x="295" y="92" text-anchor="middle" font-size="8.5" fill="#6b7280">:8081 · poll 5 min</text>
+
+  <!-- cb-agent -->
+  <rect x="230" y="130" width="130" height="50" rx="6" fill="#fff" stroke="#3b82f6" stroke-width="2"/>
+  <text x="295" y="151" text-anchor="middle" font-weight="600" fill="#1d4ed8">cb-agent</text>
+  <text x="295" y="167" text-anchor="middle" font-size="8.5" fill="#6b7280">:8082 · GPT-4o</text>
+
+  <!-- cb-patcher -->
+  <rect x="230" y="205" width="130" height="50" rx="6" fill="#fff" stroke="#3b82f6" stroke-width="2"/>
+  <text x="295" y="226" text-anchor="middle" font-weight="600" fill="#1d4ed8">cb-patcher</text>
+  <text x="295" y="242" text-anchor="middle" font-size="8.5" fill="#6b7280">:8083 · diff + build</text>
+
+  <!-- cb-pr -->
+  <rect x="230" y="280" width="130" height="50" rx="6" fill="#fff" stroke="#3b82f6" stroke-width="2"/>
+  <text x="295" y="301" text-anchor="middle" font-weight="600" fill="#1d4ed8">cb-pr</text>
+  <text x="295" y="317" text-anchor="middle" font-size="8.5" fill="#6b7280">:8084 · JGit + review</text>
+
+  <!-- cb-api -->
+  <rect x="380" y="55" width="130" height="50" rx="6" fill="#fff" stroke="#7c3aed" stroke-width="2"/>
+  <text x="445" y="76" text-anchor="middle" font-weight="600" fill="#6d28d9">cb-api</text>
+  <text x="445" y="92" text-anchor="middle" font-size="8.5" fill="#6b7280">:8080 · REST facade</text>
+
+  <!-- cb-notifier -->
+  <rect x="380" y="130" width="130" height="50" rx="6" fill="#fff" stroke="#7c3aed" stroke-width="2"/>
+  <text x="445" y="151" text-anchor="middle" font-weight="600" fill="#6d28d9">cb-notifier</text>
+  <text x="445" y="167" text-anchor="middle" font-size="8.5" fill="#6b7280">:8085 · email + DD</text>
+
+  <!-- cb-mcp-server -->
+  <rect x="380" y="205" width="130" height="50" rx="6" fill="#fff" stroke="#7c3aed" stroke-width="2"/>
+  <text x="445" y="226" text-anchor="middle" font-weight="600" fill="#6d28d9">cb-mcp-server</text>
+  <text x="445" y="242" text-anchor="middle" font-size="8.5" fill="#6b7280">:3000 · MCP tools</text>
+
+  <!-- cb-python-embedder -->
+  <rect x="380" y="280" width="130" height="50" rx="6" fill="#fff" stroke="#7c3aed" stroke-width="2"/>
+  <text x="445" y="301" text-anchor="middle" font-weight="600" fill="#6d28d9">cb-python-embedder</text>
+  <text x="445" y="317" text-anchor="middle" font-size="8.5" fill="#6b7280">:8090 · embeddings</text>
+
+  <!-- Arrows: external → services -->
+  <line x1="190" y1="85" x2="228" y2="85" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arr-o)"/>
+  <line x1="190" y1="166" x2="228" y2="310" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arr-o)"/>
+  <line x1="190" y1="246" x2="228" y2="158" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arr-o)"/>
+  <line x1="190" y1="319" x2="378" y2="160" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arr-o)"/>
+
+  <!-- Arrows: services → MongoDB -->
+  <line x1="362" y1="80" x2="548" y2="120" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr-b)" stroke-dasharray="4,2"/>
+  <line x1="362" y1="155" x2="548" y2="155" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr-b)" stroke-dasharray="4,2"/>
+  <line x1="362" y1="230" x2="548" y2="190" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr-b)" stroke-dasharray="4,2"/>
+  <line x1="362" y1="305" x2="548" y2="230" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr-b)" stroke-dasharray="4,2"/>
+  <line x1="510" y1="80" x2="548" y2="100" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arr-p)" stroke-dasharray="4,2"/>
+
+  <!-- Pipeline flow arrow -->
+  <path d="M295,105 L295,128" stroke="#10b981" stroke-width="2" marker-end="url(#arr-g)"/>
+  <path d="M295,180 L295,203" stroke="#10b981" stroke-width="2" marker-end="url(#arr-g)"/>
+  <path d="M295,255 L295,278" stroke="#10b981" stroke-width="2" marker-end="url(#arr-g)"/>
+
+  <!-- Review loop -->
+  <path d="M360,305 Q720,305 720,235 Q720,160 690,160" stroke="#f59e0b" stroke-width="2" fill="none" marker-end="url(#arr-y)" stroke-dasharray="6,3"/>
+  <text x="680" y="252" font-size="8" fill="#b45309" font-weight="600">review loop</text>
+
+  <!-- Markers -->
+  <defs>
+    <marker id="arr-o" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#fb923c"/>
+    </marker>
+    <marker id="arr-b" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#3b82f6"/>
+    </marker>
+    <marker id="arr-g" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#10b981"/>
+    </marker>
+    <marker id="arr-p" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#7c3aed"/>
+    </marker>
+    <marker id="arr-y" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#f59e0b"/>
+    </marker>
+  </defs>
+</svg>
+</div>
+
+<h2>2.2 Key Architectural Principles</h2>
+<table>
+  <thead><tr><th>Principle</th><th>Implementation</th><th>Rationale</th></tr></thead>
+  <tbody>
+    <tr><td>MongoDB as message bus</td><td>Each service polls a status slice of <code>cb_vulnerabilities</code> on a schedule</td><td>Spring <code>ApplicationEvent</code> is in-process; events don't cross pod boundaries in k8s</td></tr>
+    <tr><td>Fire-and-forget async</td><td><code>CompletableFuture.runAsync()</code> for GPT-4o review &amp; GitHub reviewer calls after PR creation</td><td>Prevents the <code>@Scheduled synchronized</code> PR poller thread from blocking on network I/O</td></tr>
+    <tr><td>Immutable domain records</td><td>All domain objects are Java <code>record</code>s; state transitions return new instances via <code>withStatus()</code></td><td>Thread-safety, easy audit trail, no partial-update bugs</td></tr>
+    <tr><td>Retry + circuit breaker</td><td>Resilience4j annotations on all LLM and GitHub API calls</td><td>Temporary API outages don't cascade to failed remediation</td></tr>
+    <tr><td>No direct inter-service HTTP</td><td>Services only call external APIs (SonarQube, GitHub, OpenAI); no service-to-service REST</td><td>Avoids distributed tracing complexity; simpler failure modes</td></tr>
+  </tbody>
+</table>
+
+<!-- 3. Service Catalogue -->
+<h1 id="hld-components">3. Service Catalogue</h1>
+<table>
+  <thead>
+    <tr><th>Service</th><th>Port</th><th>Role</th><th>Key External Dependency</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>cb-core</strong></td><td>—</td><td>Shared library: domain records, repositories, events, async config, audit service</td><td>MongoDB</td></tr>
+    <tr><td><strong>cb-api</strong></td><td>8080</td><td>REST facade — exposes scan triggers, vulnerability/fix CRUD, audit log, metrics</td><td>MongoDB, ScannerService bean</td></tr>
+    <tr><td><strong>cb-scanner</strong></td><td>8081</td><td>Polls SonarQube every 5 min for new issues; deduplicates; saves DETECTED vulnerabilities</td><td>SonarQube :9000</td></tr>
+    <tr><td><strong>cb-agent</strong></td><td>8082</td><td>Polls DETECTED vulns; calls GPT-4o (with RAG context + optional rejection feedback) to generate unified-diff fixes</td><td>OpenAI GPT-4o, cb-python-embedder</td></tr>
+    <tr><td><strong>cb-patcher</strong></td><td>8083</td><td>Polls FIX_GENERATED; applies diff to /workspace/repo; runs build validation; marks FIX_VALIDATED</td><td>/workspace/repo (git clone)</td></tr>
+    <tr><td><strong>cb-pr</strong></td><td>8084</td><td>Polls FIX_VALIDATED; commits+pushes fix branch via JGit; creates GitHub PR; posts CB AI review comment; polls for ACCEPT/REJECT</td><td>GitHub API, OpenAI GPT-4o</td></tr>
+    <tr><td><strong>cb-notifier</strong></td><td>8085</td><td>Listens to PRRaisedEvent &amp; EscalationEvent (in-process); sends email + Datadog event</td><td>SMTP, Datadog API</td></tr>
+    <tr><td><strong>cb-mcp-server</strong></td><td>3000</td><td>MCP tool server exposing CB capabilities as AI tools (code context, vulnerability lookup)</td><td>MongoDB</td></tr>
+    <tr><td><strong>cb-python-embedder</strong></td><td>8090</td><td>REST service wrapping sentence-transformers for generating vulnerability embedding vectors for RAG</td><td>HuggingFace model (local)</td></tr>
+  </tbody>
+</table>
+
+<!-- 4. End-to-End Pipeline -->
+<h1 id="hld-pipeline">4. End-to-End Pipeline</h1>
+
+<h2>4.1 Main Remediation Flow</h2>
+<div class="flow-container">
+<svg viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg" width="100%" font-family="Inter,sans-serif" font-size="10">
+
+  <!-- Steps -->
+  <!-- Step 1 -->
+  <rect x="10" y="50" width="120" height="70" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+  <text x="70" y="74" text-anchor="middle" font-weight="700" fill="#92400e">1. SCAN</text>
+  <text x="70" y="90" text-anchor="middle" font-size="8.5" fill="#374151">cb-scanner</text>
+  <text x="70" y="103" text-anchor="middle" font-size="8" fill="#6b7280">polls SonarQube</text>
+  <text x="70" y="115" text-anchor="middle" font-size="8" fill="#6b7280">every 5 min</text>
+
+  <!-- Arrow 1→2 -->
+  <path d="M130,85 L148,85" stroke="#6b7280" stroke-width="1.5" marker-end="url(#pa)"/>
+  <text x="139" y="79" text-anchor="middle" font-size="7.5" fill="#16a34a">DETECTED</text>
+
+  <!-- Step 2 -->
+  <rect x="150" y="50" width="120" height="70" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+  <text x="210" y="74" text-anchor="middle" font-weight="700" fill="#1e3a8a">2. FIX GEN</text>
+  <text x="210" y="90" text-anchor="middle" font-size="8.5" fill="#374151">cb-agent</text>
+  <text x="210" y="103" text-anchor="middle" font-size="8" fill="#6b7280">GPT-4o + RAG</text>
+  <text x="210" y="115" text-anchor="middle" font-size="8" fill="#6b7280">unified diff</text>
+
+  <!-- Arrow 2→3 -->
+  <path d="M270,85 L288,85" stroke="#6b7280" stroke-width="1.5" marker-end="url(#pa)"/>
+  <text x="279" y="79" text-anchor="middle" font-size="7.5" fill="#16a34a">FIX_GEN</text>
+
+  <!-- Step 3 -->
+  <rect x="290" y="50" width="120" height="70" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="350" y="74" text-anchor="middle" font-weight="700" fill="#14532d">3. PATCH</text>
+  <text x="350" y="90" text-anchor="middle" font-size="8.5" fill="#374151">cb-patcher</text>
+  <text x="350" y="103" text-anchor="middle" font-size="8" fill="#6b7280">apply diff</text>
+  <text x="350" y="115" text-anchor="middle" font-size="8" fill="#6b7280">build validate</text>
+
+  <!-- Arrow 3→4 -->
+  <path d="M410,85 L428,85" stroke="#6b7280" stroke-width="1.5" marker-end="url(#pa)"/>
+  <text x="419" y="79" text-anchor="middle" font-size="7.5" fill="#16a34a">FIX_VAL</text>
+
+  <!-- Step 4 -->
+  <rect x="430" y="50" width="120" height="70" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+  <text x="490" y="74" text-anchor="middle" font-weight="700" fill="#4c1d95">4. RAISE PR</text>
+  <text x="490" y="90" text-anchor="middle" font-size="8.5" fill="#374151">cb-pr</text>
+  <text x="490" y="103" text-anchor="middle" font-size="8" fill="#6b7280">JGit push</text>
+  <text x="490" y="115" text-anchor="middle" font-size="8" fill="#6b7280">GitHub PR API</text>
+
+  <!-- Arrow 4→5 -->
+  <path d="M550,85 L568,85" stroke="#6b7280" stroke-width="1.5" marker-end="url(#pa)"/>
+  <text x="559" y="79" text-anchor="middle" font-size="7.5" fill="#16a34a">PR_RAISED</text>
+
+  <!-- Step 5 -->
+  <rect x="570" y="50" width="160" height="70" rx="8" fill="#fce7f3" stroke="#db2777" stroke-width="2"/>
+  <text x="650" y="74" text-anchor="middle" font-weight="700" fill="#831843">5. REVIEW</text>
+  <text x="650" y="90" text-anchor="middle" font-size="8.5" fill="#374151">3-reviewer loop</text>
+  <text x="650" y="103" text-anchor="middle" font-size="8" fill="#6b7280">Copilot + Human</text>
+  <text x="650" y="115" text-anchor="middle" font-size="8" fill="#6b7280">+ CB GPT-4o</text>
+
+  <!-- MongoDB bar -->
+  <rect x="10" y="160" width="730" height="36" rx="6" fill="#f0fdf4" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="375" y="182" text-anchor="middle" font-weight="600" fill="#15803d" font-size="9.5">MongoDB — cb_vulnerabilities (state machine) · cb_fixes · cb_review_sessions · cb_review_feedbacks · cb_audit_events</text>
+
+  <!-- Vertical lines to MongoDB -->
+  <line x1="70"  y1="120" x2="70"  y2="158" stroke="#4ade80" stroke-width="1" stroke-dasharray="3,2"/>
+  <line x1="210" y1="120" x2="210" y2="158" stroke="#4ade80" stroke-width="1" stroke-dasharray="3,2"/>
+  <line x1="350" y1="120" x2="350" y2="158" stroke="#4ade80" stroke-width="1" stroke-dasharray="3,2"/>
+  <line x1="490" y1="120" x2="490" y2="158" stroke="#4ade80" stroke-width="1" stroke-dasharray="3,2"/>
+  <line x1="650" y1="120" x2="650" y2="158" stroke="#4ade80" stroke-width="1" stroke-dasharray="3,2"/>
+
+  <!-- REJECT loop -->
+  <path d="M650,220 Q650,265 350,265 Q200,265 70,265 Q60,265 60,240 Q60,205 68,205"
+        stroke="#dc2626" stroke-width="2" fill="none" stroke-dasharray="6,3" marker-end="url(#pa-r)"/>
+  <text x="350" y="282" text-anchor="middle" font-size="8.5" fill="#dc2626" font-weight="600">❌ REJECT → reset to DETECTED → incorporate feedback → re-generate fix</text>
+
+  <!-- ACCEPT -->
+  <path d="M740,85 L756,85" stroke="#16a34a" stroke-width="2" marker-end="url(#pa-g)"/>
+  <text x="758" y="88" font-size="9" fill="#16a34a" font-weight="600">✅</text>
+  <text x="758" y="100" font-size="8" fill="#16a34a">MERGE</text>
+
+  <defs>
+    <marker id="pa" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#6b7280"/>
+    </marker>
+    <marker id="pa-r" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#dc2626"/>
+    </marker>
+    <marker id="pa-g" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#16a34a"/>
+    </marker>
+  </defs>
+</svg>
+</div>
+
+<h2>4.2 Status Transition Summary</h2>
+<table>
+  <thead><tr><th>From</th><th>To</th><th>Trigger Service</th><th>Condition</th></tr></thead>
+  <tbody>
+    <tr><td>—</td><td><span class="badge badge-orange">DETECTED</span></td><td>cb-scanner</td><td>New SonarQube issue, not already in DB</td></tr>
+    <tr><td>DETECTED</td><td><span class="badge badge-blue">IN_PROGRESS</span></td><td>cb-agent</td><td>VulnerabilityDetectedEvent fires on poll</td></tr>
+    <tr><td>IN_PROGRESS</td><td><span class="badge badge-blue">FIX_GENERATED</span></td><td>cb-agent</td><td>GPT-4o returns valid JSON-LD fix</td></tr>
+    <tr><td>IN_PROGRESS</td><td><span class="badge badge-red">FAILED</span></td><td>cb-agent</td><td>LLM failure after max retries</td></tr>
+    <tr><td>FIX_GENERATED</td><td><span class="badge badge-green">FIX_VALIDATED</span></td><td>cb-patcher</td><td>Diff applies cleanly and build passes</td></tr>
+    <tr><td>FIX_GENERATED</td><td><span class="badge badge-red">FAILED</span></td><td>cb-patcher</td><td>Diff conflict or build failure</td></tr>
+    <tr><td>FIX_VALIDATED</td><td><span class="badge badge-purple">PR_RAISED</span></td><td>cb-pr</td><td>PR created on GitHub</td></tr>
+    <tr><td>PR_RAISED</td><td><span class="badge badge-orange">DETECTED</span></td><td>cb-pr (reject loop)</td><td>Human checks ❌ REJECT checkbox on PR</td></tr>
+    <tr><td>PR_RAISED</td><td><span class="badge badge-green">RESOLVED</span></td><td>Manual / webhook</td><td>PR merged</td></tr>
+  </tbody>
+</table>
+
+<!-- 5. Review Loop -->
+<h1 id="hld-review">5. Three-Reviewer PR Review Loop</h1>
+
+<h2>5.1 Overview</h2>
+<p>After cb-pr creates a pull request, it fires three review actions <strong>asynchronously</strong> on a background thread so the scheduler is not blocked:</p>
+
+<div class="flow-container">
+<svg viewBox="0 0 720 310" xmlns="http://www.w3.org/2000/svg" width="100%" font-family="Inter,sans-serif" font-size="10">
+
+  <!-- PR created -->
+  <rect x="10" y="120" width="130" height="50" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+  <text x="75" y="143" text-anchor="middle" font-weight="600" fill="#4c1d95">PR Created</text>
+  <text x="75" y="158" text-anchor="middle" font-size="8.5" fill="#6b7280">GitHub PR #N</text>
+
+  <!-- Arrow to async block -->
+  <path d="M140,145 L168,145" stroke="#6b7280" stroke-width="1.5" marker-end="url(#rev-a)"/>
+  <text x="154" y="138" font-size="7.5" fill="#6b7280">async</text>
+
+  <!-- Async block -->
+  <rect x="170" y="30" width="370" height="220" rx="8" fill="#fffbeb" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,3"/>
+  <text x="355" y="52" text-anchor="middle" font-size="8.5" font-weight="600" fill="#b45309">CompletableFuture.runAsync() — Thread-5</text>
+
+  <!-- Reviewer 1 -->
+  <rect x="190" y="65" width="140" height="55" rx="6" fill="#fff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="260" y="86" text-anchor="middle" font-weight="600" fill="#1d4ed8">👤 Human Reviewer</text>
+  <text x="260" y="100" text-anchor="middle" font-size="8.5" fill="#374151">GITHUB_REVIEWER_USERNAME</text>
+  <text x="260" y="113" text-anchor="middle" font-size="8" fill="#6b7280">POST /requested_reviewers</text>
+
+  <!-- Reviewer 2 -->
+  <rect x="190" y="135" width="140" height="55" rx="6" fill="#fff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="260" y="156" text-anchor="middle" font-weight="600" fill="#1d4ed8">🤖 GitHub Copilot</text>
+  <text x="260" y="170" text-anchor="middle" font-size="8.5" fill="#374151">github-copilot reviewer</text>
+  <text x="260" y="183" text-anchor="middle" font-size="8" fill="#6b7280">POST /requested_reviewers</text>
+
+  <!-- Reviewer 3 -->
+  <rect x="360" y="95" width="160" height="120" rx="6" fill="#fff" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="440" y="116" text-anchor="middle" font-weight="600" fill="#92400e">🧠 CB GPT-4o Review</text>
+  <text x="440" y="130" text-anchor="middle" font-size="8" fill="#374151">AIReviewService</text>
+  <text x="440" y="144" text-anchor="middle" font-size="8" fill="#6b7280">1. Fetch PR diff</text>
+  <text x="440" y="157" text-anchor="middle" font-size="8" fill="#6b7280">2. Analyze with GPT-4o</text>
+  <text x="440" y="170" text-anchor="middle" font-size="8" fill="#6b7280">3. Post comment w/ checkboxes</text>
+  <text x="440" y="183" text-anchor="middle" font-size="8" fill="#6b7280">4. Save ReviewSession (PENDING)</text>
+
+  <!-- MongoDB -->
+  <rect x="565" y="95" width="140" height="80" rx="6" fill="#f0fdf4" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="635" y="120" text-anchor="middle" font-weight="600" fill="#15803d">MongoDB</text>
+  <text x="635" y="136" text-anchor="middle" font-size="8" fill="#374151">cb_review_sessions</text>
+  <text x="635" y="150" text-anchor="middle" font-size="8" fill="#6b7280">status: PENDING</text>
+  <text x="635" y="163" text-anchor="middle" font-size="8" fill="#6b7280">githubCommentId: N</text>
+
+  <!-- Poller -->
+  <rect x="565" y="200" width="140" height="55" rx="6" fill="#fce7f3" stroke="#db2777" stroke-width="1.5"/>
+  <text x="635" y="222" text-anchor="middle" font-weight="600" fill="#831843">ReviewFeedback</text>
+  <text x="635" y="236" text-anchor="middle" font-weight="600" fill="#831843">Poller</text>
+  <text x="635" y="249" text-anchor="middle" font-size="8" fill="#6b7280">polls every 60s</text>
+
+  <!-- Arrows -->
+  <path d="M520,155 L563,145" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#rev-a)"/>
+  <path d="M635,175 L635,198" stroke="#4ade80" stroke-width="1.5" marker-end="url(#rev-a)"/>
+
+  <defs>
+    <marker id="rev-a" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#6b7280"/>
+    </marker>
+  </defs>
+</svg>
+</div>
+
+<h2>5.2 ACCEPT / REJECT Decision Flow</h2>
+<p>The <code>ReviewFeedbackPollerService</code> polls all PENDING <code>ReviewSession</code> documents every 60 seconds and reads the GitHub comment body via <code>GET /repos/:owner/:repo/issues/comments/:id</code>.</p>
+<p>GitHub updates the comment body in-place when a user clicks a checkbox: <code>- [ ]</code> becomes <code>- [x]</code>.</p>
+
+<table>
+  <thead><tr><th>Decision</th><th>How to Signal</th><th>CB Action</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><span class="badge badge-green">ACCEPT</span></td>
+      <td>Check <code>[ ] ✅ ACCEPT</code> on the PR comment</td>
+      <td>ReviewSession → ACCEPTED. PR proceeds to normal merge.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-red">REJECT</span></td>
+      <td>Check <code>[ ] ❌ REJECT</code> + post comment: <code>REJECT: &lt;reason&gt;</code></td>
+      <td>
+        1. Save <code>ReviewFeedback</code> (rejectionReason, processed=false)<br>
+        2. Close PR via <code>PATCH /pulls/:id {state: closed}</code><br>
+        3. Reset vuln to DETECTED (retryCount++)<br>
+        4. cb-agent re-picks up → reads rejection feedback → augments prompt → new fix → new PR
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- 6. Infrastructure -->
+<h1 id="hld-infra">6. Infrastructure &amp; Deployment</h1>
+
+<h2>6.1 Kubernetes Topology</h2>
+<table>
+  <thead><tr><th>Resource</th><th>Spec</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>Cluster</td><td>k3d <code>compliance-buddy</code></td><td>1 server node + 2 agent nodes; binary at <code>C:\Users\skp4j\bin\k3d</code></td></tr>
+    <tr><td>Namespace</td><td><code>cb-system</code></td><td>All services and MongoDB in this namespace</td></tr>
+    <tr><td>Ingress</td><td>k3d built-in, host <code>compliance-buddy.local</code></td><td><code>/api</code> → cb-api; <code>/sonar</code> → SonarQube</td></tr>
+    <tr><td>MongoDB</td><td>Standalone, 1 replica</td><td>Data persists in emptyDir (dev only); collections created lazily on first insert</td></tr>
+    <tr><td>SonarQube</td><td>Community Edition, 1 replica</td><td>Pre-loaded with kafka-micro-lab project; admin/SonarQube!08</td></tr>
+    <tr><td>Images</td><td>Local Docker built, imported via k3d</td><td><code>eclipse-temurin:17-jdk-jammy</code> builder → <code>17-jre-jammy</code> runtime</td></tr>
+    <tr><td>Security context</td><td><code>runAsUser: 1001, runAsNonRoot: true, allowPrivilegeEscalation: false</code></td><td>Applied to all CB service pods</td></tr>
+  </tbody>
+</table>
+
+<h2>6.2 ConfigMap / Secrets Split</h2>
+<ul>
+  <li><strong>cb-common-config</strong> (ConfigMap): non-secret config — MongoDB URI, embedder URL, poll intervals, model names</li>
+  <li><strong>cb-secrets</strong> (Secret): API keys, tokens — OpenAI, Anthropic, GitHub, SonarQube, SMTP, Datadog</li>
+</ul>
+
+<h2>6.3 Deployment Procedure</h2>
+<pre>
+<span class="cm"># 1. Build</span>
+docker build --no-cache -f E:/CB_Automate/&lt;module&gt;/Dockerfile -t &lt;module&gt;:latest E:/CB_Automate
+
+<span class="cm"># 2. Import into k3d</span>
+C:\Users\skp4j\bin\k3d image import &lt;module&gt;:latest -c compliance-buddy
+
+<span class="cm"># 3. Rolling restart</span>
+kubectl rollout restart deployment/&lt;module&gt; -n cb-system
+kubectl rollout status deployment/&lt;module&gt; -n cb-system --timeout=180s
+
+<span class="cm"># 4. Re-clone repo in cb-patcher and cb-pr after restart</span>
+kubectl exec -n cb-system &lt;pod&gt; -- sh -c \
+  "git clone https://token:$TOKEN@github.com/Skpandey15/kafka-micro-lab /workspace/repo"
+</pre>
+
+<!-- 7. Security Model -->
+<h1 id="hld-security">7. Security Model</h1>
+<table>
+  <thead><tr><th>Concern</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>API authentication</td><td>All REST endpoints protected by <code>X-API-Key</code> header filter (<code>ApiKeyAuthFilter</code>); key in Kubernetes secret</td></tr>
+    <tr><td>GitHub token scope</td><td>PAT with <code>repo</code> scope only; stored in <code>cb-secrets</code>, injected as env var</td></tr>
+    <tr><td>LLM prompt injection</td><td>System prompt enforces strict JSON-LD output format; parser rejects anything not matching schema</td></tr>
+    <tr><td>Container hardening</td><td>Non-root user (uid 1001), no privilege escalation, read-only app JAR</td></tr>
+    <tr><td>Secrets management</td><td>Kubernetes secrets (base64); Vault integration prepared but disabled (<code>VAULT_ENABLED=false</code>)</td></tr>
+    <tr><td>Git push credentials</td><td>Token injected at runtime via JGit <code>UsernamePasswordCredentialsProvider</code>; never persisted in git config</td></tr>
+  </tbody>
+</table>
+
+<!-- 8. Resilience -->
+<h1 id="hld-resilience">8. Resilience &amp; Fault Tolerance</h1>
+<table>
+  <thead><tr><th>Pattern</th><th>Where Applied</th><th>Config</th></tr></thead>
+  <tbody>
+    <tr><td>Circuit Breaker</td><td>GitHub API calls (<code>createBranch</code>, <code>createPullRequest</code>), LLM calls in cb-agent</td><td>Resilience4j <code>@CircuitBreaker(name="github-api")</code> and <code>@CircuitBreaker(name="llm-agent")</code></td></tr>
+    <tr><td>Retry</td><td>Same as above; LLM retry on transient errors</td><td><code>@Retry(name="github-api")</code>, <code>@Retry(name="llm-agent")</code></td></tr>
+    <tr><td>LLM Fallback</td><td>cb-agent: if GPT-4o circuit open</td><td><code>callFallbackLlm()</code> uses Claude Sonnet 4.6</td></tr>
+    <tr><td>HTTP Timeout</td><td>All GitHub API calls from cb-pr</td><td><code>SimpleClientHttpRequestFactory</code>: 10s connect, 30s read</td></tr>
+    <tr><td>Retry count limit</td><td>cb-agent fix generation</td><td><code>MAX_RETRIES = 3</code>; escalates to FAILED + EscalationEvent</td></tr>
+    <tr><td>RAG fallback</td><td>cb-agent vector search</td><td>MongoDB Atlas <code>$vectorSearch</code> not available locally → empty RAG context, falls back to no-RAG prompt</td></tr>
+    <tr><td>Async error isolation</td><td>Reviewer request + AI review after PR creation</td><td><code>CompletableFuture.exceptionally()</code> logs error; PR creation is NOT rolled back</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══════════════════════════════════════════════════
+     PART II — LOW-LEVEL DESIGN
+═══════════════════════════════════════════════════ -->
+<div class="part-banner">
+  <div class="part-label">Part II</div>
+  <h1>Low-Level Design</h1>
+  <p>Data models, state machines, per-service internals, prompt design, API contracts</p>
+</div>
+
+<!-- 9. Data Models -->
+<h1 id="lld-data">9. Data Models</h1>
+
+<h2>9.1 Vulnerability</h2>
+<p>Collection: <code>cb_vulnerabilities</code></p>
+<table>
+  <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>String (ObjectId)</td><td>MongoDB primary key</td></tr>
+    <tr><td><code>sonarIssueKey</code></td><td>String (unique index)</td><td>SonarQube issue key — dedup guard</td></tr>
+    <tr><td><code>cweId</code></td><td>String</td><td>e.g. <code>CWE-89</code>, <code>CWE-1041</code></td></tr>
+    <tr><td><code>severity</code></td><td>Severity enum</td><td>BLOCKER / CRITICAL / MAJOR / MINOR / INFO</td></tr>
+    <tr><td><code>status</code></td><td>VulnerabilityStatus enum</td><td>State machine field (see §10)</td></tr>
+    <tr><td><code>filePath</code></td><td>String</td><td>Relative path in target repo</td></tr>
+    <tr><td><code>lineNo</code></td><td>int</td><td>Line number of the vulnerability</td></tr>
+    <tr><td><code>message</code></td><td>String</td><td>SonarQube issue message</td></tr>
+    <tr><td><code>owaspCategory</code></td><td>String</td><td>OWASP mapping from ontology</td></tr>
+    <tr><td><code>retryCount</code></td><td>int</td><td>Fix generation attempts; incremented on REJECT or failure</td></tr>
+    <tr><td><code>embeddingVector</code></td><td>List&lt;Double&gt;</td><td>384-dim sentence-transformer embedding for RAG similarity search</td></tr>
+    <tr><td><code>detectedAt</code></td><td>Instant</td><td>First detection timestamp (<code>@CreatedDate</code>)</td></tr>
+    <tr><td><code>updatedAt</code></td><td>Instant</td><td>Last status change (<code>@LastModifiedDate</code>)</td></tr>
+    <tr><td><code>resolvedAt</code></td><td>Instant</td><td>Set when status → RESOLVED</td></tr>
+  </tbody>
+</table>
+
+<h2>9.2 Fix</h2>
+<p>Collection: <code>cb_fixes</code></p>
+<table>
+  <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>String (ObjectId)</td><td>MongoDB primary key; first 12 chars used as branch name suffix</td></tr>
+    <tr><td><code>vulnerabilityId</code></td><td>String (indexed)</td><td>FK to cb_vulnerabilities</td></tr>
+    <tr><td><code>patchDiff</code></td><td>String</td><td>Unified diff generated by GPT-4o</td></tr>
+    <tr><td><code>gradlePatch</code></td><td>String (nullable)</td><td>build.gradle changes (dependency additions)</td></tr>
+    <tr><td><code>strategy</code></td><td>String</td><td>Short label e.g. <code>prepared-statement</code></td></tr>
+    <tr><td><code>confidence</code></td><td>double</td><td>0.0–1.0 LLM self-confidence score</td></tr>
+    <tr><td><code>llmModel</code></td><td>String</td><td>e.g. <code>gpt-4o</code></td></tr>
+    <tr><td><code>explanation</code></td><td>String</td><td>≤200 word explanation of the fix</td></tr>
+    <tr><td><code>prUrl</code></td><td>String (nullable)</td><td>GitHub PR HTML URL after PR creation</td></tr>
+    <tr><td><code>prNumber</code></td><td>Integer (nullable)</td><td>GitHub PR number</td></tr>
+    <tr><td><code>branchName</code></td><td>String (nullable)</td><td>e.g. <code>cb/fix-cwe-89-a3b4c5d6e7f8</code></td></tr>
+    <tr><td><code>status</code></td><td>FixStatus enum</td><td>PENDING → BUILD_VALIDATED / BUILD_FAILED → PR_OPEN</td></tr>
+    <tr><td><code>buildValidated</code></td><td>boolean</td><td>True if build passed</td></tr>
+    <tr><td><code>tokensUsed</code></td><td>int</td><td>LLM tokens consumed</td></tr>
+    <tr><td><code>generatedAt</code></td><td>Instant</td><td>Fix generation timestamp</td></tr>
+  </tbody>
+</table>
+
+<h2>9.3 ReviewSession</h2>
+<p>Collection: <code>cb_review_sessions</code> — tracks the CB AI review comment on each PR</p>
+<table>
+  <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>String</td><td>MongoDB primary key</td></tr>
+    <tr><td><code>vulnerabilityId</code></td><td>String (indexed)</td><td>FK to cb_vulnerabilities</td></tr>
+    <tr><td><code>prNumber</code></td><td>int</td><td>GitHub PR number</td></tr>
+    <tr><td><code>prUrl</code></td><td>String</td><td>GitHub PR HTML URL</td></tr>
+    <tr><td><code>githubCommentId</code></td><td>Long</td><td>ID of the CB review comment — used to poll checkbox state</td></tr>
+    <tr><td><code>status</code></td><td>String</td><td><code>PENDING</code> | <code>NO_FINDINGS</code> | <code>ACCEPTED</code> | <code>REJECTED</code></td></tr>
+    <tr><td><code>cbFindingsCount</code></td><td>int</td><td>Number of findings from GPT-4o review</td></tr>
+    <tr><td><code>createdAt</code></td><td>Instant</td><td>When the review was posted</td></tr>
+  </tbody>
+</table>
+
+<h2>9.4 ReviewFeedback</h2>
+<p>Collection: <code>cb_review_feedbacks</code> — persists rejection reasons for cb-agent re-fix</p>
+<table>
+  <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>String</td><td>MongoDB primary key</td></tr>
+    <tr><td><code>vulnerabilityId</code></td><td>String (indexed)</td><td>FK to cb_vulnerabilities</td></tr>
+    <tr><td><code>prNumber</code></td><td>int</td><td>The PR that was rejected</td></tr>
+    <tr><td><code>rejectionReason</code></td><td>String</td><td>Text from <code>REJECT: &lt;reason&gt;</code> PR comment</td></tr>
+    <tr><td><code>processed</code></td><td>boolean</td><td>False until cb-agent reads it for re-fix; set true after</td></tr>
+    <tr><td><code>createdAt</code></td><td>Instant</td><td>Rejection timestamp</td></tr>
+  </tbody>
+</table>
+
+<h2>9.5 AuditEvent</h2>
+<p>Collection: <code>cb_audit_events</code> — immutable audit trail for every state change</p>
+<table>
+  <thead><tr><th>Field</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>entityId, entityType</code></td><td>What was changed (vulnId/fixId + "Vulnerability"/"Fix")</td></tr>
+    <tr><td><code>action</code></td><td>e.g. DETECTED, FIX_GENERATED, PR_RAISED, ESCALATED</td></tr>
+    <tr><td><code>actor</code></td><td>Service name that made the change</td></tr>
+    <tr><td><code>metadata</code></td><td>Arbitrary Map&lt;String,Object&gt; (e.g. model, confidence, prUrl)</td></tr>
+    <tr><td><code>timestamp</code></td><td>@CreatedDate</td></tr>
+  </tbody>
+</table>
+
+<!-- 10. State Machines -->
+<h1 id="lld-statemachine">10. State Machines</h1>
+
+<h2>10.1 Vulnerability State Machine</h2>
+<div class="flow-container">
+<svg viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg" width="100%" font-family="Inter,sans-serif" font-size="10">
+  <!-- States -->
+  <rect x="10"  y="80" width="90" height="36" rx="18" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+  <text x="55"  y="103" text-anchor="middle" font-size="9" font-weight="700" fill="#92400e">DETECTED</text>
+
+  <rect x="130" y="80" width="100" height="36" rx="18" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+  <text x="180" y="103" text-anchor="middle" font-size="9" font-weight="700" fill="#1e3a8a">IN_PROGRESS</text>
+
+  <rect x="260" y="80" width="120" height="36" rx="18" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+  <text x="320" y="103" text-anchor="middle" font-size="9" font-weight="700" fill="#1e3a8a">FIX_GENERATED</text>
+
+  <rect x="410" y="80" width="120" height="36" rx="18" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="470" y="103" text-anchor="middle" font-size="9" font-weight="700" fill="#14532d">FIX_VALIDATED</text>
+
+  <rect x="560" y="80" width="100" height="36" rx="18" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+  <text x="610" y="103" text-anchor="middle" font-size="9" font-weight="700" fill="#4c1d95">PR_RAISED</text>
+
+  <rect x="690" y="30" width="64" height="36" rx="18" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="722" y="53" text-anchor="middle" font-size="9" font-weight="700" fill="#14532d">RESOLVED</text>
+
+  <rect x="690" y="130" width="64" height="36" rx="18" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+  <text x="722" y="153" text-anchor="middle" font-size="9" font-weight="700" fill="#991b1b">FAILED</text>
+
+  <rect x="690" y="80" width="64" height="36" rx="18" fill="#fce7f3" stroke="#db2777" stroke-width="2"/>
+  <text x="722" y="103" text-anchor="middle" font-size="9" font-weight="700" fill="#831843">ESCALATED</text>
+
+  <!-- Transitions -->
+  <path d="M100,98 L128,98" stroke="#6b7280" stroke-width="1.5" marker-end="url(#sm-a)"/>
+  <path d="M230,98 L258,98" stroke="#6b7280" stroke-width="1.5" marker-end="url(#sm-a)"/>
+  <path d="M380,98 L408,98" stroke="#6b7280" stroke-width="1.5" marker-end="url(#sm-a)"/>
+  <path d="M530,98 L558,98" stroke="#6b7280" stroke-width="1.5" marker-end="url(#sm-a)"/>
+  <path d="M660,88 L688,50" stroke="#16a34a" stroke-width="1.5" marker-end="url(#sm-a)"/>
+  <path d="M660,108 L688,108" stroke="#db2777" stroke-width="1.5" marker-end="url(#sm-a)"/>
+  <path d="M380,108 Q400,170 340,170 Q270,170 180,170 Q100,170 55,170 L55,118" stroke="#dc2626" stroke-width="1.5" fill="none" stroke-dasharray="5,3" marker-end="url(#sm-r)"/>
+  <text x="200" y="185" text-anchor="middle" font-size="7.5" fill="#dc2626">REJECT → DETECTED (retryCount++)</text>
+  <text x="320" y="168" font-size="7" fill="#6b7280">BUILD_FAILED</text>
+  <path d="M380,108 L380,130 L688,148" stroke="#dc2626" stroke-width="1.2" fill="none" stroke-dasharray="4,2" marker-end="url(#sm-r)"/>
+
+  <defs>
+    <marker id="sm-a" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#6b7280"/>
+    </marker>
+    <marker id="sm-r" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#dc2626"/>
+    </marker>
+  </defs>
+</svg>
+</div>
+
+<h2>10.2 ReviewSession State Machine</h2>
+<table>
+  <thead><tr><th>Status</th><th>Meaning</th><th>Next Transition</th></tr></thead>
+  <tbody>
+    <tr><td><span class="badge badge-orange">PENDING</span></td><td>Comment posted; waiting for human decision</td><td>ACCEPTED or REJECTED</td></tr>
+    <tr><td><span class="badge badge-gray">NO_FINDINGS</span></td><td>GPT-4o found no concerns; terminal</td><td>—</td></tr>
+    <tr><td><span class="badge badge-green">ACCEPTED</span></td><td>Human checked ✅ ACCEPT; terminal</td><td>—</td></tr>
+    <tr><td><span class="badge badge-red">REJECTED</span></td><td>Human checked ❌ REJECT; PR closed; re-fix triggered</td><td>— (new ReviewSession created for next PR)</td></tr>
+  </tbody>
+</table>
+
+<!-- 11. cb-scanner -->
+<h1 id="lld-scanner">11. cb-scanner — Low-Level Design</h1>
+
+<h2>11.1 Responsibilities</h2>
+<ul>
+  <li>Poll SonarQube API every 5 minutes (configurable via <code>SCANNER_POLL_INTERVAL_MS</code>)</li>
+  <li>Page through all <code>VULNERABILITY, BUG, CODE_SMELL</code> issues for each configured project</li>
+  <li>Deduplicate via <code>sonarIssueKey</code> unique index; save new ones as DETECTED</li>
+  <li>Publish <code>VulnerabilityDetectedEvent</code> (in-process) after saving</li>
+  <li>Accept on-demand scan from cb-api (<code>POST /api/v1/scans/{projectKey}</code>)</li>
+</ul>
+
+<h2>11.2 ScannerService — Key Method</h2>
+<pre>
+<span class="an">@Scheduled</span>(fixedDelayString = <span class="st">"${scanner.poll-interval-ms:300000}"</span>)
+<span class="kw">public void</span> scheduledScan() {
+    monitoredProjects.forEach(this::scanProject);
+}
+
+<span class="kw">public int</span> scanProject(String projectKey) {
+    <span class="kw">int</span> page = 1, newFindings = 0;
+    <span class="kw">do</span> {
+        SonarIssuesResponse resp = sonarClient.getSecurityIssues(projectKey, page);
+        <span class="kw">for</span> (SonarIssue issue : resp.issues()) {
+            <span class="kw">if</span> (!vulnerabilityRepo.existsBySonarIssueKey(issue.key())) {
+                Vulnerability vuln = issueMapper.toVulnerability(issue, projectKey);
+                vulnerabilityRepo.save(vuln);
+                eventPublisher.publishEvent(<span class="kw">new</span> VulnerabilityDetectedEvent(this, vuln));
+                newFindings++;
+            }
+        }
+        page++;
+    } <span class="kw">while</span> ((page - 1) * 100L &lt; resp.paging().total());
+    <span class="kw">return</span> newFindings;
+}
+</pre>
+
+<h2>11.3 SonarQube Client</h2>
+<p>REST client hitting <code>http://cb-sonarqube:9000/sonar/api/issues/search</code> with query params:
+<code>types=VULNERABILITY,BUG,CODE_SMELL&amp;languages=java&amp;componentKeys={project}&amp;p={page}&amp;ps=100</code></p>
+
+<!-- 12. cb-agent -->
+<h1 id="lld-agent">12. cb-agent — Low-Level Design</h1>
+
+<h2>12.1 Responsibilities</h2>
+<ul>
+  <li>Poll DETECTED vulnerabilities every 30s (via <code>VulnerabilityPollerService</code>)</li>
+  <li>For each: fetch similar past fixes via RAG (sentence-transformer embeddings → MongoDB vector search)</li>
+  <li>Fetch any unprocessed <code>ReviewFeedback</code> for re-fix scenarios</li>
+  <li>Call GPT-4o with system + user prompt; parse JSON-LD <code>cb:Fix</code> response</li>
+  <li>Mark feedbacks as processed; update status to FIX_GENERATED; fire <code>FixGeneratedEvent</code></li>
+</ul>
+
+<h2>12.2 Fix Generation Flow</h2>
+<pre>
+<span class="an">@Async</span>(<span class="st">"cbAgentExecutor"</span>) <span class="an">@EventListener</span>
+<span class="kw">public void</span> onVulnerabilityDetected(VulnerabilityDetectedEvent event) {
+    vulnerabilityRepo.save(vuln.withStatus(IN_PROGRESS));
+
+    List&lt;Fix&gt; ragFixes = ragService.retrieveSimilarFixes(vuln);
+    List&lt;ReviewFeedback&gt; feedbacks =
+        reviewFeedbackRepo.findByVulnerabilityIdAndProcessedFalse(vuln.id());
+
+    String rawFix = callLlmWithFallback(vuln, ragFixes, feedbacks);
+    Fix fix = parseFix(rawFix, vuln);
+    fixRepo.save(fix);
+
+    feedbacks.forEach(f -> reviewFeedbackRepo.save(f.withProcessed()));
+    vulnerabilityRepo.save(vuln.withStatus(FIX_GENERATED));
+    eventPublisher.publishEvent(<span class="kw">new</span> FixGeneratedEvent(this, vuln, fix));
+}
+</pre>
+
+<h2>12.3 RAG Retrieval Service</h2>
+<ul>
+  <li>Posts vulnerability text to <code>cb-python-embedder:8090/embed</code> to get 384-dim vector</li>
+  <li>Queries <code>cb_fixes</code> with <code>$vectorSearch</code> (MongoDB Atlas) for top-3 similar BUILD_VALIDATED fixes</li>
+  <li>Falls back gracefully to empty list on local MongoDB (Atlas-only operator)</li>
+</ul>
+
+<h2>12.4 LLM Configuration</h2>
+<table>
+  <thead><tr><th>Setting</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td>Primary model</td><td><code>gpt-4o</code> (via Spring AI OpenAI starter)</td></tr>
+    <tr><td>Fallback model</td><td><code>claude-sonnet-4-6</code> (via Spring AI Anthropic starter)</td></tr>
+    <tr><td>Circuit breaker name</td><td><code>llm-agent</code></td></tr>
+    <tr><td>Bean qualifier</td><td><code>@Qualifier("primaryChatClient")</code> / <code>"fallbackChatClient"</code></td></tr>
+    <tr><td>Prompt mode</td><td>Two-call design: system prompt (CWE guidelines) + user prompt (vuln JSON-LD + RAG examples)</td></tr>
+  </tbody>
+</table>
+
+<!-- 13. cb-patcher -->
+<h1 id="lld-patcher">13. cb-patcher — Low-Level Design</h1>
+
+<h2>13.1 Responsibilities</h2>
+<ul>
+  <li>Listen to <code>FixGeneratedEvent</code> (in-process) — fired by cb-agent on the same pod</li>
+  <li>Apply the unified diff to <code>/workspace/repo</code> using a custom parser</li>
+  <li>Optionally apply <code>gradlePatch</code> to add new dependencies in <code>build.gradle</code></li>
+  <li>Run <code>BuildValidator.runBuild()</code> — executes <code>./gradlew compileJava --no-daemon</code> with 10-minute timeout</li>
+  <li>Mark fix as BUILD_VALIDATED or BUILD_FAILED; update vulnerability status</li>
+</ul>
+
+<div class="callout warn">
+  <strong>⚠️ Note on cross-pod events</strong>
+  PatcherService listens to <code>FixGeneratedEvent</code> via <code>@EventListener</code>. In the current k8s deployment, cb-agent and cb-patcher are <strong>separate pods</strong>. The in-process event only fires within cb-agent. cb-patcher uses its own <code>FixPollerService</code> which polls for <code>FIX_GENERATED</code> status in MongoDB every 30 seconds as the reliable cross-pod trigger.
+</div>
+
+<h2>13.2 DiffApplier Algorithm</h2>
+<ol>
+  <li>Parse unified diff: extract file paths from <code>+++ b/path</code> headers and hunk headers (<code>@@ -L,N +L,N @@</code>)</li>
+  <li>For each hunk, compute target line index with an offset accumulator (accounting for previous hunk's line count delta)</li>
+  <li>Replace context+deleted lines with added lines via <code>List.subList().clear()</code> + <code>List.addAll()</code></li>
+  <li>Write modified line list back to file</li>
+</ol>
+
+<h2>13.3 Build Validation</h2>
+<pre>
+ProcessBuilder pb = <span class="kw">new</span> ProcessBuilder(<span class="st">"./gradlew"</span>, <span class="st">"compileJava"</span>, <span class="st">"--no-daemon"</span>);
+pb.directory(<span class="kw">new</span> File(repoRoot));
+pb.redirectErrorStream(<span class="st">true</span>);
+Process process = pb.start();
+<span class="kw">boolean</span> completed = process.waitFor(timeoutMinutes, TimeUnit.MINUTES);
+<span class="kw">boolean</span> success = completed &amp;&amp; process.exitValue() == 0;
+</pre>
+<p>Build log is captured (up to 10 000 chars) and stored in <code>Fix.buildLog</code>.</p>
+
+<!-- 14. cb-pr -->
+<h1 id="lld-pr">14. cb-pr &amp; AIReviewService — Low-Level Design</h1>
+
+<h2>14.1 PRPollerService</h2>
+<ul>
+  <li>Polls <code>FIX_VALIDATED</code> vulnerabilities every 60s</li>
+  <li><code>synchronized</code> — ensures only one PR is created at a time (shared <code>/workspace/repo</code>)</li>
+  <li>For each FIX_VALIDATED: reset repo → apply diff → commit → push via JGit → create GitHub PR</li>
+  <li>After PR creation: fires async task for reviewer requests + AI review</li>
+</ul>
+
+<h2>14.2 JGit Push Flow</h2>
+<pre>
+<span class="cm">// 1. Reset to main/HEAD</span>
+git.checkout().setName(<span class="st">"main"</span>).call();
+git.reset().setMode(HARD).setRef(<span class="st">"HEAD"</span>).call();
+git.clean().setCleanDirectories(<span class="st">true</span>).setForce(<span class="st">true</span>).call();
+
+<span class="cm">// 2. Apply diff</span>
+applyDiff(repoRoot, fix.patchDiff());
+
+<span class="cm">// 3. Branch, commit, push</span>
+git.checkout().setCreateBranch(<span class="st">true</span>).setName(branchName).call();
+git.add().addFilepattern(<span class="st">"."</span>).call();
+git.commit().setMessage(<span class="st">"fix(" + vuln.cweId() + "): Auto-remediated by Compliance Buddy"</span>)
+            .setAuthor(<span class="st">"Compliance Buddy"</span>, <span class="st">"cb-bot@techseva.in"</span>).call();
+git.push().setCredentialsProvider(<span class="kw">new</span> UsernamePasswordCredentialsProvider(<span class="st">"token"</span>, githubToken))
+          .setRemote(<span class="st">"origin"</span>).call();
+</pre>
+
+<h2>14.3 Async Reviewer + Review Dispatch</h2>
+<pre>
+<span class="cm">// After PR creation — fire-and-forget so @Scheduled thread returns immediately</span>
+CompletableFuture.runAsync(() -> {
+    requestReviewers(prNumber);                          <span class="cm">// Copilot + optional human</span>
+    aiReviewService.reviewAndPost(vuln, fix, prNumber, prUrl);  <span class="cm">// GPT-4o + comment</span>
+}).exceptionally(ex -> {
+    log.error(<span class="st">"Async reviewer/review failed for PR #{}: {}"</span>, prNumber, ex.getMessage(), ex);
+    <span class="kw">return null</span>;
+});
+</pre>
+
+<h2>14.4 AIReviewService — GPT-4o Review</h2>
+<ol>
+  <li>Fetch PR diff via <code>GET /repos/:owner/:repo/pulls/:number</code> with <code>Accept: application/vnd.github.diff</code></li>
+  <li>Call GPT-4o with system prompt (senior Java security engineer role) + diff content</li>
+  <li>Parse JSON array of findings: <code>[{"title","severity","description"}, ...]</code></li>
+  <li>Build GitHub comment body with findings + ACCEPT/REJECT markdown checkboxes</li>
+  <li>POST comment via <code>POST /repos/:owner/:repo/issues/:prNumber/comments</code></li>
+  <li>Save <code>ReviewSession</code> to MongoDB with returned comment ID and status PENDING (or NO_FINDINGS)</li>
+</ol>
+
+<h2>14.5 GitHubEnterpriseClient Methods</h2>
+<table>
+  <thead><tr><th>Method</th><th>HTTP</th><th>Purpose</th></tr></thead>
+  <tbody>
+    <tr><td><code>createBranch</code></td><td>GET + POST <code>/git/refs</code></td><td>Create branch from HEAD SHA</td></tr>
+    <tr><td><code>createPullRequest</code></td><td>POST <code>/pulls</code></td><td>Open PR with title/body/head/base</td></tr>
+    <tr><td><code>requestReviewers</code></td><td>POST <code>/pulls/:n/requested_reviewers</code></td><td>Add Copilot + human reviewer</td></tr>
+    <tr><td><code>getPRDiff</code></td><td>GET <code>/pulls/:n</code> (diff Accept)</td><td>Fetch unified diff for AI review</td></tr>
+    <tr><td><code>createIssueComment</code></td><td>POST <code>/issues/:n/comments</code></td><td>Post CB review comment</td></tr>
+    <tr><td><code>getIssueCommentBody</code></td><td>GET <code>/issues/comments/:id</code></td><td>Read comment to check checkbox state</td></tr>
+    <tr><td><code>getPRIssueComments</code></td><td>GET <code>/issues/:n/comments</code></td><td>Find <code>REJECT: &lt;reason&gt;</code> comment</td></tr>
+    <tr><td><code>closePR</code></td><td>PATCH <code>/pulls/:n</code> state=closed</td><td>Close rejected PR</td></tr>
+  </tbody>
+</table>
+<p>All methods use a shared <code>RestClient</code> with <code>SimpleClientHttpRequestFactory</code> (10s connect / 30s read timeout) and Bearer token auth.</p>
+
+<!-- 15. ReviewFeedbackPollerService -->
+<h1 id="lld-poller">15. ReviewFeedbackPollerService — Low-Level Design</h1>
+
+<h2>15.1 Poll Loop</h2>
+<pre>
+<span class="an">@Scheduled</span>(fixedDelayString = <span class="st">"${review.poll-interval-ms:60000}"</span>, initialDelay = 30000)
+<span class="kw">public synchronized void</span> pollPendingReviews() {
+    List&lt;ReviewSession&gt; pending = reviewSessionRepo.findByStatus(<span class="st">"PENDING"</span>);
+    <span class="kw">for</span> (ReviewSession session : pending) {
+        String body = githubClient.getIssueCommentBody(owner, repo, session.githubCommentId());
+        <span class="kw">if</span> (isAccepted(body))  reviewSessionRepo.save(session.withStatus(<span class="st">"ACCEPTED"</span>));
+        <span class="kw">else if</span> (isRejected(body)) handleRejection(session, extractRejectionReason(prNumber));
+    }
+}
+</pre>
+
+<h2>15.2 Checkbox Detection</h2>
+<p>GitHub renders <code>- [ ]</code> as a clickable checkbox. When clicked, GitHub edits the comment body in-place, replacing <code>[ ]</code> with <code>[x]</code>.</p>
+<table>
+  <thead><tr><th>Signal</th><th>String to Match</th></tr></thead>
+  <tbody>
+    <tr><td>ACCEPT</td><td><code>[x] ✅ **ACCEPT**</code> or <code>[X] ✅ ACCEPT</code></td></tr>
+    <tr><td>REJECT</td><td><code>[x] ❌ **REJECT**</code> or <code>[X] ❌ REJECT</code></td></tr>
+    <tr><td>Rejection reason</td><td>Any PR comment starting with <code>REJECT:</code> (case-insensitive)</td></tr>
+  </tbody>
+</table>
+
+<h2>15.3 Rejection Handling</h2>
+<ol>
+  <li>Query all PR comments looking for one starting with <code>REJECT:</code></li>
+  <li>Save <code>ReviewFeedback{rejectionReason, processed=false}</code></li>
+  <li>Close PR: <code>githubClient.closePR(owner, repo, prNumber)</code></li>
+  <li>Reset vulnerability: <code>vuln.incrementRetryCount().withStatus(DETECTED)</code></li>
+  <li>Save <code>ReviewSession.withStatus("REJECTED")</code></li>
+  <li>cb-agent polls within 30s, reads the unprocessed <code>ReviewFeedback</code>, augments GPT-4o prompt</li>
+</ol>
+
+<!-- 16. Prompt Engineering -->
+<h1 id="lld-prompt">16. Prompt Engineering</h1>
+
+<h2>16.1 System Prompt (Fix Generation)</h2>
+<p>The system prompt establishes the AI persona and strict output rules:</p>
+<ul>
+  <li>Role: expert Java 17/Spring Boot security engineer, OWASP Top 10 specialist</li>
+  <li>CWE-specific remediation guidelines for 8 common CWEs (SQL injection, XSS, path traversal, hardcoded credentials, etc.)</li>
+  <li>Output format: JSON-LD <code>cb:Fix</code> object — exactly 6 required fields, no prose outside JSON</li>
+  <li>Each patched line must include trailing comment <code>// CB-FIX: &lt;cweId&gt; — &lt;strategy&gt;</code></li>
+</ul>
+
+<h2>16.2 User Prompt Structure</h2>
+<pre>
+## VULNERABILITY TO REMEDIATE
+{vulnerability as JSON-LD cb:Vulnerability}
+
+## SIMILAR VALIDATED FIXES (RAG top-3)  <span class="cm">← optional, if available</span>
+Adapt the fix style from these validated examples:
+[{cb:Fix JSON-LD}, ...]
+
+## ⚠️ PREVIOUS FIX REJECTED — REVIEWER FEEDBACK  <span class="cm">← only on re-fix</span>
+Your previous fix attempt was rejected. You MUST address ALL of the following:
+1. {rejectionReason1}
+2. {rejectionReason2}
+Generate an improved fix that explicitly resolves every concern listed above.
+
+## INSTRUCTION
+Generate a JSON-LD cb:Fix object. Follow CWE guidelines. Respond ONLY with JSON-LD.
+</pre>
+
+<h2>16.3 AI Review System Prompt (cb-pr)</h2>
+<ul>
+  <li>Role: senior Java security engineer reviewing an auto-generated patch</li>
+  <li>Goal: identify remaining concerns, missed cases, side effects</li>
+  <li>Output: JSON array of findings (title ≤8 words, severity HIGH|MEDIUM|LOW, description ≤100 words)</li>
+  <li>Clean fix → return <code>[]</code> (empty array)</li>
+</ul>
+
+<!-- 17. REST API -->
+<h1 id="lld-api">17. cb-api REST Endpoints</h1>
+<p>Base URL: <code>http://compliance-buddy.local/api</code> &nbsp;|&nbsp; Auth: <code>X-API-Key: dev-key-change-in-prod</code></p>
+<table>
+  <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td>POST</td><td><code>/v1/scans/{projectKey}</code></td><td>Trigger on-demand SonarQube scan</td></tr>
+    <tr><td>GET</td><td><code>/v1/vulnerabilities</code></td><td>List all vulnerabilities (with optional status filter)</td></tr>
+    <tr><td>GET</td><td><code>/v1/vulnerabilities/{id}</code></td><td>Get vulnerability by ID</td></tr>
+    <tr><td>GET</td><td><code>/v1/fixes</code></td><td>List all fixes</td></tr>
+    <tr><td>GET</td><td><code>/v1/fixes/{id}</code></td><td>Get fix by ID</td></tr>
+    <tr><td>GET</td><td><code>/v1/audit</code></td><td>Audit event log (sortable by timestamp)</td></tr>
+    <tr><td>GET</td><td><code>/v1/metrics</code></td><td>Pipeline metrics (counts by status, avg confidence, etc.)</td></tr>
+    <tr><td>GET</td><td><code>/actuator/health</code></td><td>Spring Boot health check</td></tr>
+    <tr><td>GET</td><td><code>/swagger-ui</code></td><td>OpenAPI / Swagger UI</td></tr>
+  </tbody>
+</table>
+
+<!-- 18. cb-notifier -->
+<h1 id="lld-notifier">18. cb-notifier — Low-Level Design</h1>
+<p>cb-notifier listens to in-process Spring events and sends notifications asynchronously on the <code>cbNotifierExecutor</code> thread pool.</p>
+<table>
+  <thead><tr><th>Event</th><th>Notification</th><th>Condition</th></tr></thead>
+  <tbody>
+    <tr><td><code>PRRaisedEvent</code></td><td>Email + Datadog event: "PR #N raised for CWE-X in file.java"</td><td>Every successful PR creation</td></tr>
+    <tr><td><code>EscalationEvent</code></td><td>Email + Datadog alert: "Fix generation failed after N retries"</td><td>MAX_RETRIES exceeded or build failure</td></tr>
+  </tbody>
+</table>
+<div class="callout warn">
+  <strong>⚠️ Known limitation</strong>
+  Since cb-notifier is a separate pod from cb-pr (which fires <code>PRRaisedEvent</code>), in-process Spring events don't cross the pod boundary. A <code>NotifierPollerService</code> polling <code>cb_audit_events</code> for PR_RAISED entries is the correct long-term fix.
+</div>
+
+<!-- 19. Kubernetes Manifests -->
+<h1 id="lld-k8s">19. Kubernetes Manifests</h1>
+
+<h2>19.1 Resource Summary</h2>
+<table>
+  <thead><tr><th>Service</th><th>CPU Request</th><th>CPU Limit</th><th>Memory Req</th><th>Memory Limit</th><th>Replicas</th></tr></thead>
+  <tbody>
+    <tr><td>cb-scanner</td><td>100m</td><td>300m</td><td>256Mi</td><td>512Mi</td><td>1</td></tr>
+    <tr><td>cb-agent</td><td>200m</td><td>500m</td><td>512Mi</td><td>1Gi</td><td>1</td></tr>
+    <tr><td>cb-patcher</td><td>200m</td><td>500m</td><td>512Mi</td><td>1Gi</td><td>1</td></tr>
+    <tr><td>cb-pr</td><td>200m</td><td>400m</td><td>256Mi</td><td>512Mi</td><td>1</td></tr>
+    <tr><td>cb-api</td><td>100m</td><td>300m</td><td>256Mi</td><td>512Mi</td><td>1</td></tr>
+    <tr><td>cb-notifier</td><td>100m</td><td>200m</td><td>128Mi</td><td>256Mi</td><td>1</td></tr>
+    <tr><td>cb-mongodb</td><td>200m</td><td>500m</td><td>512Mi</td><td>1Gi</td><td>1</td></tr>
+    <tr><td>cb-sonarqube</td><td>500m</td><td>1000m</td><td>1Gi</td><td>2Gi</td><td>1</td></tr>
+  </tbody>
+</table>
+
+<h2>19.2 Volume Strategy</h2>
+<ul>
+  <li>cb-patcher &amp; cb-pr: <code>emptyDir</code> volume mounted at <code>/workspace/repo</code> — must be re-cloned after pod restart</li>
+  <li>MongoDB: <code>emptyDir</code> (dev environment) — data lost on pod restart; PVC recommended for production</li>
+  <li>SonarQube: <code>emptyDir</code> for dev; H2 database embedded</li>
+</ul>
+
+<h2>19.3 Health Probes</h2>
+<pre>
+livenessProbe:
+  httpGet: { path: /actuator/health/liveness, port: 808X }
+  initialDelaySeconds: 45
+  periodSeconds: 20
+
+readinessProbe:
+  httpGet: { path: /actuator/health/readiness, port: 808X }
+  initialDelaySeconds: 30
+  periodSeconds: 10
+</pre>
+
+<!-- 20. Key Patterns -->
+<h1 id="lld-patterns">20. Key Patterns &amp; Gotchas</h1>
+
+<h2>20.1 The Poller Pattern (Critical)</h2>
+<div class="callout info">
+  <strong>Why pollers instead of Spring events across services?</strong>
+  Spring's <code>ApplicationEventPublisher</code> / <code>@EventListener</code> is in-process only. In Kubernetes, each service runs in its own pod. Events published in cb-agent are invisible to cb-patcher or cb-pr. <strong>Every cross-pod trigger must go through MongoDB status polling.</strong>
+</div>
+
+<table>
+  <thead><tr><th>Service</th><th>Poller</th><th>Polls For</th><th>Interval</th></tr></thead>
+  <tbody>
+    <tr><td>cb-scanner</td><td>ScannerService.scheduledScan()</td><td>SonarQube new issues</td><td>5 min</td></tr>
+    <tr><td>cb-agent</td><td>VulnerabilityPollerService</td><td>status = DETECTED</td><td>30s</td></tr>
+    <tr><td>cb-patcher</td><td>FixPollerService</td><td>status = FIX_GENERATED</td><td>30s</td></tr>
+    <tr><td>cb-pr</td><td>PRPollerService</td><td>status = FIX_VALIDATED</td><td>60s</td></tr>
+    <tr><td>cb-pr</td><td>ReviewFeedbackPollerService</td><td>ReviewSession status = PENDING</td><td>60s</td></tr>
+  </tbody>
+</table>
+
+<h2>20.2 Branch Naming Convention</h2>
+<pre>
+branchName = "cb/fix-" + cweId.toLowerCase().replace(":", "-")
+           + "-" + fixId.substring(0, 12)
+<span class="cm">// Example: cb/fix-cwe-89-a3b4c5d6e7f8</span>
+</pre>
+<p>The 12-character fix ID suffix prevents branch name collisions between multiple fixes for the same CWE.</p>
+
+<h2>20.3 Known Limitations &amp; Workarounds</h2>
+<table>
+  <thead><tr><th>Issue</th><th>Cause</th><th>Workaround</th></tr></thead>
+  <tbody>
+    <tr><td>repo lost on pod restart</td><td><code>emptyDir</code> volume cleared on restart</td><td>Re-clone after every cb-patcher/cb-pr restart</td></tr>
+    <tr><td>Vector search fails locally</td><td><code>$vectorSearch</code> is Atlas-only</td><td>Falls back gracefully to no-RAG prompt</td></tr>
+    <tr><td>Java 26 Gradle incompatibility</td><td>Host JDK 26 incompatible with Gradle 8.8</td><td>Always build inside Docker (eclipse-temurin:17)</td></tr>
+    <tr><td>JGit config write error</td><td><code>/home/cbapp/.config/jgit</code> not writable</td><td>Non-fatal; <code>setAuthor()</code> still works; safe to ignore</td></tr>
+    <tr><td>Multiple TaskExecutor warning</td><td>cb-core AsyncConfig defines 4 named executors</td><td>Add <code>@Primary</code> to the default executor if needed; harmless in current code</td></tr>
+    <tr><td>GitHub Copilot reviewer fails</td><td><code>github-copilot</code> user not a repo collaborator</td><td>Handled gracefully with try-catch; enable Copilot Code Review in repo Settings → Copilot</td></tr>
+  </tbody>
+</table>
+
+<h2>20.4 Async Config Thread Pools (cb-core AsyncConfig)</h2>
+<table>
+  <thead><tr><th>Executor Bean</th><th>Core Threads</th><th>Max Threads</th><th>Used By</th></tr></thead>
+  <tbody>
+    <tr><td><code>cbAgentExecutor</code></td><td>2</td><td>4</td><td>FixGenerationService</td></tr>
+    <tr><td><code>cbPatcherExecutor</code></td><td>2</td><td>4</td><td>PatcherService</td></tr>
+    <tr><td><code>cbPrExecutor</code></td><td>2</td><td>4</td><td>PRService</td></tr>
+    <tr><td><code>cbNotifierExecutor</code></td><td>2</td><td>4</td><td>NotifierService</td></tr>
+  </tbody>
+</table>
+
+<!-- Footer -->
+<div style="margin-top:60px; padding-top:20px; border-top:2px solid #e5e7eb; font-size:9pt; color:#9ca3af; text-align:center;">
+  <strong>Compliance Buddy — HLD &amp; LLD</strong> &nbsp;|&nbsp; Version 1.0 · June 2026 &nbsp;|&nbsp; TechSeva.in &nbsp;|&nbsp; CONFIDENTIAL
+</div>
+
+</body>
+</html>

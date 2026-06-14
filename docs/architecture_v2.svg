@@ -1,0 +1,270 @@
+
+<svg viewBox="0 0 900 680" xmlns="http://www.w3.org/2000/svg" width="900" height="680">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#374151"/>
+    </marker>
+    <marker id="arr-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#1a56db"/>
+    </marker>
+    <marker id="arr-purple" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#7c3aed"/>
+    </marker>
+    <marker id="arr-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#16a34a"/>
+    </marker>
+    <marker id="arr-orange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#ea580c"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="680" fill="#f8fafc" rx="8"/>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" font-weight="bold" fill="#1e3a8a">Compliance Buddy — Complete Architecture (v2, 2026-06-14)</text>
+  <text x="450" y="48" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#6b7280">9 Services · Agentic AI · Qdrant RAG · MCP Server · OpenTelemetry/Jaeger</text>
+
+  <!-- ═══ ZONE 1: EXTERNAL SYSTEMS ════════════════════════════════════ -->
+  <rect x="10" y="60" width="880" height="80" rx="6" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
+  <text x="20" y="74" font-family="Arial,sans-serif" font-size="8" font-weight="bold" fill="#1d4ed8" letter-spacing="1">EXTERNAL SYSTEMS</text>
+
+  <!-- SonarQube -->
+  <rect x="20" y="80" width="110" height="46" rx="5" fill="#fff7ed" stroke="#fed7aa" stroke-width="1.5"/>
+  <text x="75" y="98" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#c2410c">SonarQube</text>
+  <text x="75" y="113" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#7c2d12">in-cluster :9000</text>
+  <text x="75" y="124" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#9a3412">SAST / Issue API</text>
+
+  <!-- GPT-4o -->
+  <rect x="195" y="80" width="110" height="46" rx="5" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5"/>
+  <text x="250" y="98" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#15803d">GPT-4o</text>
+  <text x="250" y="113" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#166534">Primary LLM</text>
+  <text x="250" y="124" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#14532d">text-embedding-3-small</text>
+
+  <!-- Claude -->
+  <rect x="320" y="80" width="110" height="46" rx="5" fill="#faf5ff" stroke="#e9d5ff" stroke-width="1.5"/>
+  <text x="375" y="98" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#7c3aed">Claude Sonnet</text>
+  <text x="375" y="113" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#6d28d9">Fallback LLM</text>
+  <text x="375" y="124" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#5b21b6">Anthropic API</text>
+
+  <!-- GitHub -->
+  <rect x="445" y="80" width="110" height="46" rx="5" fill="#f9fafb" stroke="#d1d5db" stroke-width="1.5"/>
+  <text x="500" y="98" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#374151">GitHub API</text>
+  <text x="500" y="113" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#4b5563">PR / Review</text>
+  <text x="500" y="124" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#6b7280">Copilot Reviewer</text>
+
+  <!-- External AI (MCP clients) -->
+  <rect x="670" y="80" width="120" height="46" rx="5" fill="#fdf4ff" stroke="#e9d5ff" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="730" y="98" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#7c3aed">External AI Agents</text>
+  <text x="730" y="113" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#6d28d9">Claude Desktop</text>
+  <text x="730" y="124" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#5b21b6">GitHub Copilot MCP</text>
+
+  <!-- Developer / REST Users -->
+  <rect x="805" y="80" width="85" height="46" rx="5" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1.5"/>
+  <text x="847" y="98" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#0369a1">Users / CI</text>
+  <text x="847" y="113" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#0284c7">REST Clients</text>
+  <text x="847" y="124" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#0ea5e9">X-API-Key auth</text>
+
+  <!-- ═══ ZONE 2: MAIN PIPELINE SERVICES ════════════════════════════════ -->
+  <rect x="10" y="155" width="880" height="210" rx="6" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+  <text x="20" y="169" font-family="Arial,sans-serif" font-size="8" font-weight="bold" fill="#15803d" letter-spacing="1">SECURITY REMEDIATION PIPELINE (MongoDB Event Bus)</text>
+
+  <!-- cb-scanner -->
+  <rect x="25" y="175" width="120" height="70" rx="6" fill="#dcfce7" stroke="#4ade80" stroke-width="2"/>
+  <text x="85" y="193" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#15803d">cb-scanner</text>
+  <text x="85" y="207" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#166534">:8081</text>
+  <text x="85" y="220" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#14532d">Polls SonarQube</text>
+  <text x="85" y="233" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#14532d">every 5 min</text>
+
+  <!-- arrow scanner→agent -->
+  <line x1="145" y1="210" x2="195" y2="210" stroke="#374151" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="170" y="206" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#1e3a8a">DETECTED</text>
+
+  <!-- cb-agent (big, highlighted - AGENTIC) -->
+  <rect x="195" y="175" width="185" height="180" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="2.5"/>
+  <text x="287" y="195" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#1e3a8a">cb-agent</text>
+  <text x="287" y="209" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#1d4ed8">:8082 · Spring AI 1.0</text>
+  <!-- Agent components -->
+  <rect x="205" y="215" width="165" height="130" rx="4" fill="#eff6ff" stroke="#93c5fd" stroke-width="1"/>
+  <text x="287" y="228" text-anchor="middle" font-family="Arial,sans-serif" font-size="8.5" font-weight="bold" fill="#1e3a8a">🤖 AgentOrchestrator</text>
+  <text x="287" y="241" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#1d4ed8">ChatClient + FixAgentTools</text>
+  <text x="287" y="254" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#1d4ed8">Resilience4j CB + Retry</text>
+  <!-- Tool boxes inside agent -->
+  <rect x="210" y="260" width="74" height="30" rx="3" fill="#bfdbfe" stroke="#3b82f6" stroke-width="1"/>
+  <text x="247" y="273" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" font-weight="bold" fill="#1e3a8a">@Tool</text>
+  <text x="247" y="284" text-anchor="middle" font-family="Arial,sans-serif" font-size="6.5" fill="#1e40af">retrieveSimilarFixes</text>
+  <rect x="291" y="260" width="74" height="30" rx="3" fill="#bfdbfe" stroke="#3b82f6" stroke-width="1"/>
+  <text x="328" y="273" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" font-weight="bold" fill="#1e3a8a">@Tool</text>
+  <text x="328" y="284" text-anchor="middle" font-family="Arial,sans-serif" font-size="6.5" fill="#1e40af">getGuideline</text>
+  <!-- FixMemoryService -->
+  <rect x="210" y="296" width="155" height="24" rx="3" fill="#e0f2fe" stroke="#38bdf8" stroke-width="1"/>
+  <text x="287" y="308" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#0369a1">FixMemoryService (5 min poll → Qdrant)</text>
+  <!-- VulnerabilityPollerService -->
+  <rect x="210" y="325" width="155" height="16" rx="3" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+  <text x="287" y="336" text-anchor="middle" font-family="Arial,sans-serif" font-size="6.5" fill="#475569">VulnerabilityPollerService (30s)</text>
+
+  <!-- arrow agent→patcher -->
+  <line x1="380" y1="250" x2="420" y2="250" stroke="#374151" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="400" y="246" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#1e3a8a">FIX_GEN</text>
+
+  <!-- cb-patcher -->
+  <rect x="420" y="175" width="120" height="70" rx="6" fill="#dcfce7" stroke="#4ade80" stroke-width="2"/>
+  <text x="480" y="193" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#15803d">cb-patcher</text>
+  <text x="480" y="207" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#166534">:8083</text>
+  <text x="480" y="220" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#14532d">Apply unified diff</text>
+  <text x="480" y="233" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#14532d">Gradle build validate</text>
+
+  <!-- arrow patcher→pr -->
+  <line x1="540" y1="210" x2="588" y2="210" stroke="#374151" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="564" y="206" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#1e3a8a">FIX_VAL</text>
+
+  <!-- cb-pr -->
+  <rect x="588" y="175" width="120" height="70" rx="6" fill="#dcfce7" stroke="#4ade80" stroke-width="2"/>
+  <text x="648" y="193" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" font-weight="bold" fill="#15803d">cb-pr</text>
+  <text x="648" y="207" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#166534">:8084</text>
+  <text x="648" y="220" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#14532d">JGit commit/push</text>
+  <text x="648" y="233" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#14532d">GitHub PR + Reviewers</text>
+
+  <!-- 3-reviewer loop box -->
+  <rect x="585" y="255" width="300" height="100" rx="5" fill="#fffbeb" stroke="#fcd34d" stroke-width="1.5"/>
+  <text x="735" y="272" text-anchor="middle" font-family="Arial,sans-serif" font-size="8.5" font-weight="bold" fill="#92400e">3-Reviewer Loop</text>
+  <text x="600" y="288" font-family="Arial,sans-serif" font-size="7.5" fill="#78350f">① GitHub Copilot AI reviews (auto-requested)</text>
+  <text x="600" y="300" font-family="Arial,sans-serif" font-size="7.5" fill="#78350f">② CB GPT-4o self-review (async, findings + ACCEPT/REJECT)</text>
+  <text x="600" y="312" font-family="Arial,sans-serif" font-size="7.5" fill="#78350f">③ Human reviewer decides via GitHub UI checkbox</text>
+  <text x="600" y="326" font-family="Arial,sans-serif" font-size="7.5" fill="#78350f">④ ReviewFeedbackPollerService (60s) → REJECT triggers re-fix</text>
+  <text x="600" y="340" font-family="Arial,sans-serif" font-size="7.5" fill="#92400e">⑤ Rejection feedback injected into next AgentOrchestrator prompt</text>
+
+  <!-- PR_RAISED badge -->
+  <text x="820" y="200" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#374151">PR_RAISED</text>
+  <line x1="708" y1="210" x2="795" y2="210" stroke="#374151" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr)"/>
+  <text x="751" y="206" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#374151">GitHub</text>
+
+  <!-- Qdrant arrow from agent (down) -->
+  <line x1="287" y1="355" x2="287" y2="392" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#arr-purple)"/>
+
+  <!-- ═══ ZONE 3: SUPPORTING SERVICES ════════════════════════════════════ -->
+  <rect x="10" y="378" width="880" height="75" rx="6" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.5"/>
+  <text x="20" y="392" font-family="Arial,sans-serif" font-size="8" font-weight="bold" fill="#7c3aed" letter-spacing="1">SUPPORTING SERVICES</text>
+
+  <!-- cb-api -->
+  <rect x="20" y="398" width="120" height="48" rx="5" fill="#e0f2fe" stroke="#38bdf8" stroke-width="1.5"/>
+  <text x="80" y="415" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#0369a1">cb-api</text>
+  <text x="80" y="428" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#0284c7">:8080 · Gateway</text>
+  <text x="80" y="440" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#0369a1">Spring Security + Swagger</text>
+
+  <!-- cb-notifier -->
+  <rect x="150" y="398" width="120" height="48" rx="5" fill="#fff7ed" stroke="#fdba74" stroke-width="1.5"/>
+  <text x="210" y="415" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#c2410c">cb-notifier</text>
+  <text x="210" y="428" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#ea580c">:8085 · Alerts</text>
+  <text x="210" y="440" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#9a3412">Email · Datadog</text>
+
+  <!-- cb-mcp-server (NEW - highlighted) -->
+  <rect x="280" y="395" width="165" height="54" rx="5" fill="#f3e8ff" stroke="#a855f7" stroke-width="2.5"/>
+  <text x="362" y="411" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#7c3aed">✨ cb-mcp-server</text>
+  <text x="362" y="424" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#6d28d9">:8086 · Spring AI MCP</text>
+  <text x="362" y="436" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#5b21b6">5 Tools via SSE /sse endpoint</text>
+  <text x="362" y="448" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#7c3aed">findPreviousFixes · getSonarIssue · getPRDiff · buildProject · createPR</text>
+
+  <!-- MCP SSE arrow to external AI -->
+  <line x1="445" y1="423" x2="665" y2="423" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr-purple)"/>
+  <text x="555" y="418" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#7c3aed">MCP / SSE protocol</text>
+
+  <!-- External AI box aligned -->
+  <rect x="665" y="395" width="125" height="54" rx="5" fill="#fdf4ff" stroke="#e9d5ff" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="727" y="415" text-anchor="middle" font-family="Arial,sans-serif" font-size="8.5" font-weight="bold" fill="#7c3aed">External Agents</text>
+  <text x="727" y="430" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#6d28d9">Claude Desktop</text>
+  <text x="727" y="443" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#6d28d9">GitHub Copilot + MCP</text>
+
+  <!-- User arrow to cb-api -->
+  <line x1="847" y1="126" x2="847" y2="380" stroke="#0369a1" stroke-width="1" stroke-dasharray="3,2"/>
+  <line x1="847" y1="380" x2="140" y2="422" stroke="#0369a1" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr-blue)"/>
+
+  <!-- ═══ ZONE 4: INFRASTRUCTURE ════════════════════════════════════════ -->
+  <rect x="10" y="462" width="880" height="90" rx="6" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="20" y="476" font-family="Arial,sans-serif" font-size="8" font-weight="bold" fill="#475569" letter-spacing="1">INFRASTRUCTURE (k3d Kubernetes — namespace cb-system)</text>
+
+  <!-- MongoDB -->
+  <rect x="20" y="482" width="130" height="56" rx="5" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.5"/>
+  <text x="85" y="500" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#065f46">MongoDB</text>
+  <text x="85" y="513" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#047857">cb-mongodb:27017</text>
+  <text x="85" y="525" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#059669">cb_vulnerabilities</text>
+  <text x="85" y="536" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#059669">cb_fixes · cb_audit_events</text>
+
+  <!-- Qdrant (NEW) -->
+  <rect x="165" y="482" width="160" height="56" rx="5" fill="#ede9fe" stroke="#a78bfa" stroke-width="2.5"/>
+  <text x="245" y="498" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#5b21b6">✨ Qdrant v1.9</text>
+  <text x="245" y="511" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#6d28d9">qdrant:6334 (gRPC)</text>
+  <text x="245" y="524" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#7c3aed">VectorStore: cb_fixes</text>
+  <text x="245" y="536" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#7c3aed">text-embedding-3-small · 1536-dim</text>
+
+  <!-- Jaeger (NEW) -->
+  <rect x="340" y="482" width="160" height="56" rx="5" fill="#fef3c7" stroke="#fbbf24" stroke-width="2.5"/>
+  <text x="420" y="498" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#92400e">✨ Jaeger v1.57</text>
+  <text x="420" y="511" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#b45309">OTLP HTTP :4318 · UI :16686</text>
+  <text x="420" y="524" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#d97706">All 9 services → OTel traces</text>
+  <text x="420" y="536" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#d97706">micrometer-tracing-bridge-otel</text>
+
+  <!-- SonarQube infra -->
+  <rect x="515" y="482" width="110" height="56" rx="5" fill="#fff7ed" stroke="#fed7aa" stroke-width="1.5"/>
+  <text x="570" y="500" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#c2410c">SonarQube</text>
+  <text x="570" y="513" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#ea580c">cb-sonarqube:9000</text>
+  <text x="570" y="525" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#9a3412">kafka-micro-lab</text>
+  <text x="570" y="536" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#9a3412">VULNERABILITY · BUG · CODE_SMELL</text>
+
+  <!-- k8s badge -->
+  <rect x="640" y="482" width="245" height="56" rx="5" fill="#dbeafe" stroke="#93c5fd" stroke-width="1.5"/>
+  <text x="762" y="500" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#1e3a8a">k3d Kubernetes Cluster</text>
+  <text x="762" y="513" text-anchor="middle" font-family="Arial,sans-serif" font-size="7.5" fill="#1d4ed8">cluster: compliance-buddy · ns: cb-system</text>
+  <text x="762" y="525" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#2563eb">Ingress: compliance-buddy.local /api /sonar /swagger-ui</text>
+  <text x="762" y="536" text-anchor="middle" font-family="Arial,sans-serif" font-size="7" fill="#3b82f6">ConfigMap + Secrets + Kustomize</text>
+
+  <!-- OTel arrows from services to Jaeger -->
+  <line x1="85" y1="355" x2="85" y2="460" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2,2" marker-end="url(#arr-orange)"/>
+  <line x1="480" y1="245" x2="480" y2="460" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2,2" marker-end="url(#arr-orange)"/>
+  <line x1="648" y1="245" x2="648" y2="460" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2,2" marker-end="url(#arr-orange)"/>
+  <text x="650" y="430" font-family="Arial,sans-serif" font-size="7" fill="#b45309">OTel</text>
+  <line x1="650" y1="435" x2="480" y2="482" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2,2" marker-end="url(#arr-orange)"/>
+
+  <!-- MongoDB connections (vertical) from pipeline services -->
+  <line x1="145" y1="220" x2="85" y2="460" stroke="#10b981" stroke-width="1" stroke-dasharray="2,2" marker-end="url(#arr-green)"/>
+  <line x1="480" y1="245" x2="125" y2="482" stroke="#10b981" stroke-width="1" stroke-dasharray="2,2" marker-end="url(#arr-green)"/>
+
+  <!-- Qdrant connection from agent -->
+  <line x1="287" y1="392" x2="287" y2="482" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arr-purple)"/>
+
+  <!-- ═══ LEGEND ════════════════════════════════════════════════════════ -->
+  <rect x="10" y="565" width="880" height="105" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="20" y="579" font-family="Arial,sans-serif" font-size="8" font-weight="bold" fill="#374151" letter-spacing="1">LEGEND &amp; STATE MACHINE</text>
+
+  <!-- Legend items -->
+  <rect x="20" y="585" width="10" height="10" fill="#dcfce7" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="35" y="594" font-family="Arial,sans-serif" font-size="7.5" fill="#374151">Core Pipeline Service</text>
+
+  <rect x="130" y="585" width="10" height="10" fill="#ede9fe" stroke="#a855f7" stroke-width="2"/>
+  <text x="145" y="594" font-family="Arial,sans-serif" font-size="7.5" fill="#374151">✨ New in v2 (Qdrant, Jaeger, MCP)</text>
+
+  <rect x="310" y="585" width="10" height="10" fill="#fef3c7" stroke="#fbbf24" stroke-width="1.5"/>
+  <text x="325" y="594" font-family="Arial,sans-serif" font-size="7.5" fill="#374151">Infrastructure / Observability</text>
+
+  <rect x="470" y="585" width="10" height="10" fill="#f0fdf4" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="485" y="594" font-family="Arial,sans-serif" font-size="7.5" fill="#374151">External AI Models / APIs</text>
+
+  <!-- State machine flow -->
+  <text x="20" y="612" font-family="Arial,sans-serif" font-size="8" font-weight="bold" fill="#374151">Vulnerability State Machine: </text>
+  <text x="20" y="625" font-family="Arial,sans-serif" font-size="7.5" fill="#374151">DETECTED</text>
+  <line x1="68" y1="622" x2="82" y2="622" stroke="#374151" stroke-width="1" marker-end="url(#arr)"/>
+  <text x="85" y="625" font-family="Arial,sans-serif" font-size="7.5" fill="#374151">IN_PROGRESS</text>
+  <line x1="138" y1="622" x2="152" y2="622" stroke="#374151" stroke-width="1" marker-end="url(#arr)"/>
+  <text x="155" y="625" font-family="Arial,sans-serif" font-size="7.5" fill="#374151">FIX_GENERATED</text>
+  <line x1="225" y1="622" x2="239" y2="622" stroke="#374151" stroke-width="1" marker-end="url(#arr)"/>
+  <text x="242" y="625" font-family="Arial,sans-serif" font-size="7.5" fill="#374151">FIX_VALIDATED</text>
+  <line x1="311" y1="622" x2="325" y2="622" stroke="#374151" stroke-width="1" marker-end="url(#arr)"/>
+  <text x="328" y="625" font-family="Arial,sans-serif" font-size="7.5" fill="#374151">PR_RAISED</text>
+  <line x1="375" y1="622" x2="389" y2="622" stroke="#374151" stroke-width="1" marker-end="url(#arr)"/>
+  <text x="392" y="625" font-family="Arial,sans-serif" font-size="7.5" fill="#16a34a">RESOLVED</text>
+  <text x="450" y="625" font-family="Arial,sans-serif" font-size="7.5" fill="#374151"> or </text>
+  <text x="465" y="625" font-family="Arial,sans-serif" font-size="7.5" fill="#dc2626">FAILED/ESCALATED</text>
+
+  <text x="20" y="645" font-family="Arial,sans-serif" font-size="7.5" fill="#374151">Agentic Tool-call Loop (NEW): LLM → [call retrieveSimilarFixes(cweId, message)] → Qdrant → [results] → LLM → [call getRemediationGuideline(cweId)] → guidelines → LLM → JSON-LD cb:Fix output</text>
+  <text x="20" y="660" font-family="Arial,sans-serif" font-size="7.5" fill="#374151">OTel Flow (NEW): All 9 services instrument spans via micrometer-tracing-bridge-otel → OTLP HTTP → Jaeger :4318 → Jaeger UI :16686 (in-cluster)</text>
+</svg>

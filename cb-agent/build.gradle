@@ -1,0 +1,36 @@
+plugins {
+    id 'org.springframework.boot'
+}
+
+dependencies {
+    implementation project(':cb-core')
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+
+    // Spring AI: models + Qdrant vector store
+    implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+    implementation 'org.springframework.ai:spring-ai-starter-model-anthropic'
+    implementation 'org.springframework.ai:spring-ai-starter-vector-store-qdrant'
+
+    // MCP Java SDK
+    implementation "io.modelcontextprotocol.sdk:mcp:${mcpSdkVersion}"
+
+    // OpenTelemetry tracing
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
+
+    // Resilience4j
+    implementation "io.github.resilience4j:resilience4j-spring-boot3"
+    implementation "io.github.resilience4j:resilience4j-circuitbreaker"
+    implementation "io.github.resilience4j:resilience4j-retry"
+
+    implementation 'io.micrometer:micrometer-registry-datadog'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+    testImplementation "org.wiremock:wiremock-standalone:${wiremockVersion}"
+    testImplementation "org.testcontainers:mongodb:${testcontainersVersion}"
+    testImplementation "org.testcontainers:junit-jupiter:${testcontainersVersion}"
+}

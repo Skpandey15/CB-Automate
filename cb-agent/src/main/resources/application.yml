@@ -1,0 +1,94 @@
+spring:
+  application:
+    name: cb-agent
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/compliance_buddy}
+  cache:
+    type: caffeine
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.actuate.autoconfigure.metrics.export.datadog.DatadogMetricsExportAutoConfiguration
+      - org.springframework.ai.model.chat.client.autoconfigure.ChatClientAutoConfiguration
+  cloud:
+    vault:
+      enabled: ${VAULT_ENABLED:false}
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        options:
+          model: gpt-4o
+          temperature: 0.1
+          max-tokens: 4096
+      embedding:
+        options:
+          model: text-embedding-3-small
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:}
+      chat:
+        options:
+          model: claude-sonnet-4-6
+          temperature: 0.1
+          max-tokens: 4096
+    vectorstore:
+      qdrant:
+        host: ${QDRANT_HOST:localhost}
+        port: ${QDRANT_PORT:6334}
+        collection-name: ${QDRANT_COLLECTION:cb_fixes}
+        initialize-schema: true
+
+server:
+  port: 8082
+
+agent:
+  primary-model: ${AGENT_PRIMARY_MODEL:gpt-4o}
+  fallback-model: ${AGENT_FALLBACK_MODEL:claude-sonnet-4-6}
+  mcp:
+    server-url: ${MCP_SERVER_URL:http://localhost:8086}
+
+embedder:
+  url: ${EMBEDDER_URL:http://localhost:8090}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      llm-agent:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+      embedder-api:
+        slidingWindowSize: 5
+        failureRateThreshold: 60
+        waitDurationInOpenState: 20s
+  retry:
+    instances:
+      llm-agent:
+        maxAttempts: 3
+        waitDuration: 5s
+        exponentialBackoffMultiplier: 2.0
+      embedder-api:
+        maxAttempts: 2
+        waitDuration: 2s
+  timelimiter:
+    instances:
+      llm-agent:
+        timeoutDuration: 60s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  tracing:
+    enabled: ${OTEL_ENABLED:true}
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://jaeger:4318/v1/traces}

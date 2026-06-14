@@ -1,0 +1,6 @@
+# Reusable base — copy into each module's Dockerfile or use ARG MODULE_NAME
+FROM eclipse-temurin:17-jre-jammy AS runtime
+RUN groupadd -r cbapp && useradd -r -g cbapp -u 1001 cbapp
+WORKDIR /app
+RUN chown cbapp:cbapp /app
+USER cbapp

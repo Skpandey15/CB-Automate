@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: cb-mcp-server
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/compliance_buddy}
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.actuate.autoconfigure.metrics.export.datadog.DatadogMetricsExportAutoConfiguration
+  ai:
+    mcp:
+      server:
+        name: cb-mcp-server
+        version: 1.0.0
+        resource-change-notification: false
+        prompt-change-notification: false
+
+server:
+  port: 8086
+
+github:
+  api-url: ${GITHUB_API_URL:https://api.github.com}
+  token: ${GITHUB_TOKEN:}
+  owner: ${GITHUB_OWNER:}
+  repo: ${GITHUB_REPO:}
+
+patcher:
+  api-url: ${PATCHER_API_URL:http://cb-patcher:8083}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  tracing:
+    enabled: ${OTEL_ENABLED:true}
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://jaeger:4318/v1/traces}
+
+logging:
+  level:
+    in.techseva.cb: INFO

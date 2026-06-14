@@ -1,0 +1,70 @@
+spring:
+  application:
+    name: cb-pr
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/compliance_buddy}
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:placeholder}
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:placeholder}
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.actuate.autoconfigure.metrics.export.datadog.DatadogMetricsExportAutoConfiguration
+  cloud:
+    vault:
+      enabled: ${VAULT_ENABLED:false}
+
+server:
+  port: 8084
+
+github:
+  api-url: ${GITHUB_API_URL:https://api.github.com}
+  token: ${GITHUB_TOKEN:}
+  owner: ${GITHUB_OWNER:}
+  repo: ${GITHUB_REPO:}
+  default-branch: ${GITHUB_DEFAULT_BRANCH:main}
+  reviewer-username: ${GITHUB_REVIEWER_USERNAME:}
+
+version1:
+  api-url: ${VERSION1_API_URL:}
+  token: ${VERSION1_TOKEN:}
+  default-assignee: ${VERSION1_DEFAULT_ASSIGNEE:CB-Bot}
+
+patcher:
+  repo-root: ${PATCHER_REPO_ROOT:/workspace/repo}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      github-api:
+        slidingWindowSize: 20
+        failureRateThreshold: 40
+        waitDurationInOpenState: 60s
+      version1-api:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+  retry:
+    instances:
+      github-api:
+        maxAttempts: 3
+        waitDuration: 3s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  tracing:
+    enabled: ${OTEL_ENABLED:true}
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://jaeger:4318/v1/traces}
