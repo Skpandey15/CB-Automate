@@ -1,13 +1,13 @@
 # Compliance Buddy - Stop Script
-# Gracefully stops the k3d cluster (all pods are preserved for next start).
+# Gracefully stops the k3d cluster (all data is preserved for next start).
 
 $K3D     = "C:\Users\skp4j\bin\k3d"
 $CLUSTER = "compliance-buddy"
 
 Write-Host ""
-Write-Host "======================================" -ForegroundColor Cyan
-Write-Host "  Compliance Buddy  -  Stop" -ForegroundColor Cyan
-Write-Host "======================================" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "  Compliance Buddy  -  Stop             " -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Stopping cluster '$CLUSTER'..." -ForegroundColor Yellow
 
@@ -15,8 +15,11 @@ Write-Host "  Stopping cluster '$CLUSTER'..." -ForegroundColor Yellow
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
-    Write-Host "  Cluster stopped. All data is preserved." -ForegroundColor Green
-    Write-Host "  Run start-cb.ps1 (or start-cb.bat) to bring it back up." -ForegroundColor Gray
+    Write-Host "  Cluster stopped. All data is preserved:" -ForegroundColor Green
+    Write-Host "    MongoDB documents, Kafka topics, Elasticsearch indexes," -ForegroundColor Gray
+    Write-Host "    Qdrant vectors, Redis cache, SonarQube projects." -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "  Run start-cb.bat to bring it back up." -ForegroundColor Gray
 } else {
     Write-Host ""
     Write-Host "  ERROR: Could not stop cluster. Is Docker running?" -ForegroundColor Red
