@@ -9,7 +9,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
     implementation "org.eclipse.jgit:org.eclipse.jgit:${jgitVersion}"
     implementation "io.github.resilience4j:resilience4j-spring-boot3"
-    implementation 'io.micrometer:micrometer-registry-datadog'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
     implementation 'io.micrometer:micrometer-tracing-bridge-otel'
     implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
     implementation 'org.springframework.kafka:spring-kafka'

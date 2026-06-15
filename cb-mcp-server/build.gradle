@@ -11,7 +11,9 @@ dependencies {
     // Spring AI MCP server (SSE / WebMVC transport)
     implementation 'org.springframework.ai:spring-ai-starter-mcp-server-webmvc'
 
-    // GitHub + patcher HTTP calls
+    // Resilience4j circuit breakers for GitHub / Tempo / Prometheus HTTP calls
+    implementation "io.github.resilience4j:resilience4j-spring-boot3"
+
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 

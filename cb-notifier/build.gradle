@@ -15,6 +15,10 @@ dependencies {
     implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
     implementation 'org.springframework.kafka:spring-kafka'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+    // micrometer-registry-datadog kept for DatadogEventService (Events API calls)
+    implementation 'io.micrometer:micrometer-registry-prometheus'
 
     testImplementation "org.testcontainers:junit-jupiter:${testcontainersVersion}"
 }

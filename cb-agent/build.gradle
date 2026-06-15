@@ -17,9 +17,6 @@ dependencies {
     implementation 'org.springframework.ai:spring-ai-starter-vector-store-qdrant'
     implementation 'org.springframework.ai:spring-ai-starter-vector-store-elasticsearch'
 
-    // MCP Java SDK
-    implementation "io.modelcontextprotocol.sdk:mcp:${mcpSdkVersion}"
-
     // LangGraph4j multi-agent workflow
     implementation "org.bsc.langgraph4j:langgraph4j-core:${langGraph4jVersion}"
 
@@ -40,7 +37,7 @@ dependencies {
     implementation "io.github.resilience4j:resilience4j-circuitbreaker"
     implementation "io.github.resilience4j:resilience4j-retry"
 
-    implementation 'io.micrometer:micrometer-registry-datadog'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
 
     testImplementation "org.wiremock:wiremock-standalone:${wiremockVersion}"
     testImplementation "org.testcontainers:mongodb:${testcontainersVersion}"
