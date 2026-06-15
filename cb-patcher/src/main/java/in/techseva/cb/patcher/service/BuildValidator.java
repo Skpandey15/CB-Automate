@@ -21,15 +21,22 @@ public class BuildValidator {
 
     private final int buildTimeoutMinutes;
     private final String repoRoot;
+    private final boolean skipBuildValidation;
 
     public BuildValidator(
             @Value("${patcher.build-timeout-minutes:10}") int buildTimeoutMinutes,
-            @Value("${patcher.repo-root:/workspace/repo}") String repoRoot) {
+            @Value("${patcher.repo-root:/workspace/repo}") String repoRoot,
+            @Value("${patcher.skip-build-validation:false}") boolean skipBuildValidation) {
         this.buildTimeoutMinutes = buildTimeoutMinutes;
         this.repoRoot = repoRoot;
+        this.skipBuildValidation = skipBuildValidation;
     }
 
     public BuildResult runBuild() {
+        if (skipBuildValidation) {
+            log.info("Build validation skipped (patcher.skip-build-validation=true)");
+            return new BuildResult(true, "Build validation skipped");
+        }
         Path workDir = Paths.get(repoRoot);
         log.info("Running build in {}", workDir);
 

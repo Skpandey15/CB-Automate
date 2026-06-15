@@ -6,6 +6,7 @@ import in.techseva.cb.core.domain.VulnerabilityStatus;
 import in.techseva.cb.core.events.FixValidatedEvent;
 import in.techseva.cb.core.events.PRRaisedEvent;
 import in.techseva.cb.core.ontology.OntologyMapper;
+import in.techseva.cb.core.patch.DiffApplier;
 import in.techseva.cb.core.repository.FixRepository;
 import in.techseva.cb.core.repository.VulnerabilityRepository;
 import in.techseva.cb.core.service.AuditService;
@@ -134,10 +135,33 @@ public class PRService {
 
     private void commitAndPush(String branchName, Vulnerability vuln, Fix fix) throws Exception {
         File repoDir = new File(repoRoot);
+        UsernamePasswordCredentialsProvider creds =
+                new UsernamePasswordCredentialsProvider("token", githubToken);
+
+        if (!new File(repoDir, ".git").exists()) {
+            String cloneUrl = "https://github.com/" + repoOwner + "/" + repoName + ".git";
+            log.info("Cloning {} into {}", cloneUrl, repoDir);
+            Git.cloneRepository()
+                    .setURI(cloneUrl)
+                    .setDirectory(repoDir)
+                    .setCredentialsProvider(creds)
+                    .call()
+                    .close();
+            log.info("Clone complete");
+        }
+
         try (Repository repo = new FileRepositoryBuilder()
                 .setGitDir(new File(repoDir, ".git"))
                 .build();
              Git git = new Git(repo)) {
+
+            git.checkout().setName("main").call();
+            git.pull().setCredentialsProvider(creds).call();
+
+            if (fix.patchDiff() != null && !fix.patchDiff().isBlank()) {
+                new DiffApplier().applyDiff(repoRoot, fix.patchDiff());
+                log.info("Applied patchDiff for fix={}", fix.id());
+            }
 
             git.checkout().setCreateBranch(true).setName(branchName).call();
             git.add().addFilepattern(".").call();
@@ -150,8 +174,7 @@ public class PRService {
                     .setAuthor("Compliance Buddy", "cb-bot@techseva.in")
                     .call();
             git.push()
-                    .setCredentialsProvider(
-                            new UsernamePasswordCredentialsProvider("token", githubToken))
+                    .setCredentialsProvider(creds)
                     .setRemote("origin")
                     .call();
             log.info("Pushed branch {} to remote", branchName);

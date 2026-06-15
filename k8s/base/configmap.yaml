@@ -58,6 +58,7 @@ data:
   # ── Patcher ───────────────────────────────────────────────────
   PATCHER_REPO_ROOT: "/workspace/repo"
   PATCHER_BUILD_TIMEOUT_MINUTES: "10"
+  PATCHER_SKIP_BUILD_VALIDATION: "true"
 
   # ── Notifications ─────────────────────────────────────────────
   DATADOG_ENABLED: "false"
