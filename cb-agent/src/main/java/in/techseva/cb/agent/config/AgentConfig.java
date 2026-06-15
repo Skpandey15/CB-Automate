@@ -11,13 +11,20 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.serializer.DeserializationException;
 import org.springframework.lang.Nullable;
+import org.springframework.util.backoff.FixedBackOff;
 
 @Configuration
 public class AgentConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(AgentConfig.class);
 
     @Value("${spring.elasticsearch.uris:http://localhost:9200}")
     private String elasticsearchUri;
@@ -78,6 +85,16 @@ public class AgentConfig {
         factory.setConsumerFactory(consumerFactory);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
         factory.setConcurrency(2);
+
+        // Skip poison-pill messages immediately; retry transient listener errors up to 3x
+        var errorHandler = new DefaultErrorHandler(
+            (rec, ex) -> log.error("Skipping bad record topic={} partition={} offset={}: {}",
+                rec.topic(), rec.partition(), rec.offset(), ex.getMessage()),
+            new FixedBackOff(1000L, 3L)
+        );
+        errorHandler.addNotRetryableExceptions(DeserializationException.class);
+        factory.setCommonErrorHandler(errorHandler);
+
         return factory;
     }
 }

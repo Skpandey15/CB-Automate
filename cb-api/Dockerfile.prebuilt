@@ -1,7 +1,7 @@
 ﻿FROM eclipse-temurin:17-jre-jammy
 RUN groupadd -r cbapp && useradd -r -g cbapp -u 1001 cbapp
 WORKDIR /app
-COPY cb-api/build/libs/cb-api-1.0.0.jar app.jar
+COPY build/libs/cb-api-1.0.0.jar app.jar
 RUN chown cbapp:cbapp app.jar
 USER cbapp
 EXPOSE 8080

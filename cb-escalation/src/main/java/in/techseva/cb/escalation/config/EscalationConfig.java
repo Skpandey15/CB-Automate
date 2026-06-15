@@ -1,16 +1,23 @@
 package in.techseva.cb.escalation.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.serializer.DeserializationException;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.concurrent.Executor;
 
 @Configuration
 public class EscalationConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(EscalationConfig.class);
 
     @Bean("escalationExecutor")
     public Executor escalationExecutor() {
@@ -29,6 +36,14 @@ public class EscalationConfig {
         var factory = new ConcurrentKafkaListenerContainerFactory<String, Object>();
         factory.setConsumerFactory(consumerFactory);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
+
+        var errorHandler = new DefaultErrorHandler(
+            (rec, ex) -> log.error("Skipping bad record topic={} partition={} offset={}: {}",
+                rec.topic(), rec.partition(), rec.offset(), ex.getMessage()),
+            new FixedBackOff(1000L, 3L)
+        );
+        errorHandler.addNotRetryableExceptions(DeserializationException.class);
+        factory.setCommonErrorHandler(errorHandler);
         return factory;
     }
 }

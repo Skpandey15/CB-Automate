@@ -41,7 +41,7 @@ public class OpaGovernanceService {
     public GovernanceResult evaluate(Vulnerability vuln, Fix fix) {
         if (!opaEnabled) {
             log.debug("OPA governance disabled — allowing PR for fix={}", fix.id());
-            return GovernanceResult.allowed();
+            return GovernanceResult.allow();
         }
 
         Map<String, Object> input = Map.of(
@@ -63,7 +63,7 @@ public class OpaGovernanceService {
 
             if (response == null || response.result() == null) {
                 log.warn("OPA returned null response for fix={} — defaulting to ALLOW", fix.id());
-                return GovernanceResult.allowed();
+                return GovernanceResult.allow();
             }
 
             boolean allow = Boolean.TRUE.equals(response.result().get("allow"));
@@ -75,12 +75,12 @@ public class OpaGovernanceService {
 
         } catch (Exception e) {
             log.error("OPA governance call failed for fix={}: {} — defaulting to ALLOW", fix.id(), e.getMessage());
-            return GovernanceResult.allowed();
+            return GovernanceResult.allow();
         }
     }
 
     public record GovernanceResult(boolean allowed, List<String> violations) {
-        static GovernanceResult allowed() {
+        static GovernanceResult allow() {
             return new GovernanceResult(true, List.of());
         }
     }

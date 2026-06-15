@@ -1,4 +1,4 @@
-package in.techseva.cb.pr.config;
+package in.techseva.cb.patcher.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,9 +12,9 @@ import org.springframework.kafka.support.serializer.DeserializationException;
 import org.springframework.util.backoff.FixedBackOff;
 
 @Configuration
-public class KafkaPrConfig {
+public class PatcherConfig {
 
-    private static final Logger log = LoggerFactory.getLogger(KafkaPrConfig.class);
+    private static final Logger log = LoggerFactory.getLogger(PatcherConfig.class);
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(
