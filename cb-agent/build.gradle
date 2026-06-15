@@ -10,9 +10,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
-    // Spring AI: models + Qdrant vector store
+    // Spring AI: models + Qdrant vector store + MCP client
     implementation 'org.springframework.ai:spring-ai-starter-model-openai'
     implementation 'org.springframework.ai:spring-ai-starter-model-anthropic'
+    implementation 'org.springframework.ai:spring-ai-mcp'
     implementation 'org.springframework.ai:spring-ai-starter-model-ollama'
     implementation 'org.springframework.ai:spring-ai-starter-vector-store-qdrant'
     implementation 'org.springframework.ai:spring-ai-starter-vector-store-elasticsearch'

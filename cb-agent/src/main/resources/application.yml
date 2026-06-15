@@ -43,6 +43,7 @@ spring:
       - org.springframework.ai.model.chat.client.autoconfigure.ChatClientAutoConfiguration
       - org.springframework.ai.vectorstore.elasticsearch.autoconfigure.ElasticsearchVectorStoreAutoConfiguration
       - org.springframework.ai.model.ollama.autoconfigure.OllamaEmbeddingAutoConfiguration
+      - org.springframework.ai.model.anthropic.autoconfigure.AnthropicChatAutoConfiguration
   cloud:
     vault:
       enabled: ${VAULT_ENABLED:false}
@@ -82,7 +83,7 @@ server:
 
 agent:
   primary-model: ${AGENT_PRIMARY_MODEL:gpt-4o}
-  fallback-model: ${AGENT_FALLBACK_MODEL:claude-sonnet-4-6}
+  fallback-model: ${AGENT_FALLBACK_MODEL:gpt-4o}
   mcp:
     server-url: ${MCP_SERVER_URL:http://localhost:8086}
 
