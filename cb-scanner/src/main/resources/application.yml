@@ -32,6 +32,20 @@ scanner:
   poll-interval-ms: ${SCANNER_POLL_INTERVAL_MS:300000}
   projects: ${SCANNER_PROJECTS:}
 
+github:
+  owner: ${GITHUB_OWNER:}
+  repo: ${GITHUB_REPO:}
+  token: ${GITHUB_TOKEN:}
+
+dep:
+  scanner:
+    enabled: ${DEP_SCANNER_ENABLED:true}
+    repo-root: ${DEP_SCANNER_REPO_ROOT:/workspace/repo}
+    poll-interval-ms: ${DEP_SCANNER_POLL_INTERVAL_MS:600000}
+    oss-index:
+      username: ${OSS_INDEX_USERNAME:}
+      token: ${OSS_INDEX_TOKEN:}
+
 resilience4j:
   circuitbreaker:
     instances:
@@ -40,10 +54,25 @@ resilience4j:
         failureRateThreshold: 50
         waitDurationInOpenState: 30s
         permittedNumberOfCallsInHalfOpenState: 3
+      oss-index-api:
+        slidingWindowSize: 5
+        failureRateThreshold: 60
+        waitDurationInOpenState: 60s
+        permittedNumberOfCallsInHalfOpenState: 2
+      maven-central-api:
+        slidingWindowSize: 5
+        failureRateThreshold: 60
+        waitDurationInOpenState: 30s
   retry:
     instances:
       sonarqube-api:
         maxAttempts: 3
+        waitDuration: 2s
+      oss-index-api:
+        maxAttempts: 2
+        waitDuration: 5s
+      maven-central-api:
+        maxAttempts: 2
         waitDuration: 2s
 
 management:

@@ -2,6 +2,7 @@ package in.techseva.cb.agent.service;
 
 import in.techseva.cb.core.domain.Severity;
 import in.techseva.cb.core.domain.Vulnerability;
+import in.techseva.cb.core.domain.VulnerabilityType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -28,6 +29,9 @@ public class OllamaRoutingService {
     @Value("${ollama.model.medium-severity:qwen2:7b}")
     private String ollamaMediumModel;
 
+    @Value("${spring.ai.ollama.chat.enabled:true}")
+    private boolean ollamaEnabled;
+
     public OllamaRoutingService(
             @org.springframework.beans.factory.annotation.Qualifier("primaryChatClient") ChatClient gpt4oChatClient,
             @org.springframework.beans.factory.annotation.Qualifier("ollamaChatClient") ChatClient ollamaChatClient) {
@@ -36,6 +40,12 @@ public class OllamaRoutingService {
     }
 
     public ChatClient routeForVulnerability(Vulnerability vuln) {
+        // Dependency upgrades always use the cloud model: the agent needs getSafeVersion
+        // tool and reliable JSON output — local models are not reliable enough for this.
+        if (vuln.isDependencyVulnerability()) {
+            log.debug("Routing {} (DEPENDENCY) to GPT-4o", vuln.id());
+            return gpt4oChatClient;
+        }
         return switch (vuln.severity()) {
             case CRITICAL, BLOCKER -> {
                 log.debug("Routing {} severity={} to GPT-4o", vuln.id(), vuln.severity());
@@ -53,6 +63,8 @@ public class OllamaRoutingService {
     }
 
     public String modelNameForVulnerability(Vulnerability vuln) {
+        if (vuln.isDependencyVulnerability()) return "gpt-4o";
+        if (!ollamaEnabled) return "gpt-4o";
         return (vuln.severity() == Severity.CRITICAL || vuln.severity() == Severity.BLOCKER)
                 ? "gpt-4o"
                 : vuln.severity() == Severity.MAJOR ? ollamaMediumModel : ollamaLowModel;

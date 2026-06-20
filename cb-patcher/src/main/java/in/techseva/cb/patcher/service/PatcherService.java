@@ -12,6 +12,9 @@ import in.techseva.cb.core.repository.VulnerabilityRepository;
 import in.techseva.cb.core.service.AuditService;
 import in.techseva.cb.patcher.kafka.ValidatedFixKafkaPublisher;
 import in.techseva.cb.patcher.service.BuildValidator.BuildResult;
+import jakarta.annotation.PostConstruct;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +23,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.util.Map;
 
 @Service
@@ -36,6 +40,9 @@ public class PatcherService {
     private final AuditService auditService;
     private final ValidatedFixKafkaPublisher validatedFixPublisher;
     private final String repoRoot;
+    private final String githubOwner;
+    private final String githubRepo;
+    private final String githubToken;
 
     public PatcherService(DiffApplier diffApplier,
                           GradlePatcher gradlePatcher,
@@ -45,7 +52,10 @@ public class PatcherService {
                           ApplicationEventPublisher eventPublisher,
                           AuditService auditService,
                           ValidatedFixKafkaPublisher validatedFixPublisher,
-                          @Value("${patcher.repo-root:/workspace/repo}") String repoRoot) {
+                          @Value("${patcher.repo-root:/workspace/repo}") String repoRoot,
+                          @Value("${github.owner:}") String githubOwner,
+                          @Value("${github.repo:}") String githubRepo,
+                          @Value("${github.token:}") String githubToken) {
         this.diffApplier = diffApplier;
         this.gradlePatcher = gradlePatcher;
         this.buildValidator = buildValidator;
@@ -55,6 +65,35 @@ public class PatcherService {
         this.auditService = auditService;
         this.validatedFixPublisher = validatedFixPublisher;
         this.repoRoot = repoRoot;
+        this.githubOwner = githubOwner;
+        this.githubRepo = githubRepo;
+        this.githubToken = githubToken;
+    }
+
+    @PostConstruct
+    public void ensureRepoCloned() {
+        if (githubOwner.isBlank() || githubRepo.isBlank()) {
+            log.warn("github.owner/repo not configured — patcher will not have repo available");
+            return;
+        }
+        File repoDir = new File(repoRoot);
+        if (new File(repoDir, ".git").exists()) {
+            log.info("Repo already cloned at {}", repoRoot);
+            return;
+        }
+        String cloneUrl = "https://github.com/" + githubOwner + "/" + githubRepo + ".git";
+        log.info("Cloning {} into {}", cloneUrl, repoRoot);
+        try {
+            var cloneCmd = Git.cloneRepository().setURI(cloneUrl).setDirectory(repoDir);
+            if (!githubToken.isBlank()) {
+                cloneCmd.setCredentialsProvider(
+                    new UsernamePasswordCredentialsProvider("token", githubToken));
+            }
+            cloneCmd.call().close();
+            log.info("Clone complete: {}", repoRoot);
+        } catch (Exception e) {
+            log.error("Failed to clone repo {}: {}", cloneUrl, e.getMessage(), e);
+        }
     }
 
     @Async("cbPatcherExecutor")

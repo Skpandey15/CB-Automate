@@ -20,6 +20,7 @@ spec:
       securityContext:
         runAsUser: 1001
         runAsNonRoot: true
+        fsGroup: 1001
       containers:
         - name: cb-scanner
           image: cb-scanner:latest
@@ -45,6 +46,42 @@ spec:
                 secretKeyRef:
                   name: cb-secrets
                   key: SCANNER_PROJECTS
+            - name: OSS_INDEX_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: OSS_INDEX_USERNAME
+                  optional: true
+            - name: OSS_INDEX_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: OSS_INDEX_TOKEN
+                  optional: true
+            - name: DEP_SCANNER_REPO_ROOT
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: DEP_SCANNER_REPO_ROOT
+                  optional: true
+            - name: GITHUB_OWNER
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: GITHUB_OWNER
+            - name: GITHUB_REPO
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: GITHUB_REPO
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: GITHUB_TOKEN
+          volumeMounts:
+            - name: repo-workspace
+              mountPath: /workspace/repo
           resources:
             requests:
               memory: "256Mi"
@@ -56,16 +93,21 @@ spec:
             httpGet:
               path: /actuator/health/liveness
               port: 8081
-            initialDelaySeconds: 45
-            periodSeconds: 20
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
               port: 8081
-            initialDelaySeconds: 30
-            periodSeconds: 10
+            initialDelaySeconds: 90
+            periodSeconds: 15
+            failureThreshold: 3
           securityContext:
             allowPrivilegeEscalation: false
+      volumes:
+        - name: repo-workspace
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -87,7 +129,7 @@ metadata:
   labels:
     app: cb-agent
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: cb-agent
@@ -120,13 +162,30 @@ spec:
                 secretKeyRef:
                   name: cb-secrets
                   key: ANTHROPIC_API_KEY
+            - name: SPRING_AI_OLLAMA_CHAT_ENABLED
+              value: "false"
+            - name: GITHUB_OWNER
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: GITHUB_OWNER
+            - name: GITHUB_REPO
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: GITHUB_REPO
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: GITHUB_TOKEN
           resources:
             requests:
               memory: "512Mi"
-              cpu: "500m"
+              cpu: "250m"
             limits:
               memory: "1Gi"
-              cpu: "1000m"
+              cpu: "750m"
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -183,6 +242,22 @@ spec:
           envFrom:
             - configMapRef:
                 name: cb-common-config
+          env:
+            - name: GITHUB_OWNER
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: GITHUB_OWNER
+            - name: GITHUB_REPO
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: GITHUB_REPO
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: GITHUB_TOKEN
           volumeMounts:
             - name: repo-workspace
               mountPath: /workspace/repo

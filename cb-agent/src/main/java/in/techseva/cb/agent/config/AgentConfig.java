@@ -55,14 +55,19 @@ public class AgentConfig {
         return ChatClient.builder(model).build();
     }
 
+    @Value("${spring.ai.ollama.chat.enabled:true}")
+    private boolean ollamaEnabled;
+
     // Ollama for low-severity routing (zero-cost local inference)
     @Bean("ollamaChatClient")
     public ChatClient ollamaChatClient(
             @Nullable @Qualifier("ollamaChatModel") ChatModel ollamaModel,
             @Qualifier("primaryChatClient") ChatClient primaryFallback) {
-        if (ollamaModel != null) {
+        if (ollamaEnabled && ollamaModel != null) {
+            log.info("Ollama enabled — using local inference for low-severity routing");
             return ChatClient.builder(ollamaModel).build();
         }
+        log.info("Ollama disabled — routing all severities to primary model (GPT-4o)");
         return primaryFallback;
     }
 

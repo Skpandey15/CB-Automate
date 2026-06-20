@@ -3,6 +3,7 @@ package in.techseva.cb.scanner.mapper;
 import in.techseva.cb.core.domain.Severity;
 import in.techseva.cb.core.domain.Vulnerability;
 import in.techseva.cb.core.domain.VulnerabilityStatus;
+import in.techseva.cb.core.domain.VulnerabilityType;
 import in.techseva.cb.scanner.client.SonarQubeClient.SonarIssue;
 import org.springframework.stereotype.Component;
 
@@ -67,7 +68,9 @@ public class SonarIssueMapper {
                 Instant.now(),
                 Instant.now(),
                 null,
-                null
+                null,
+                VulnerabilityType.CODE,  // SonarQube issues are always source-code vulns
+                null, null, null, null, null
         );
     }
 

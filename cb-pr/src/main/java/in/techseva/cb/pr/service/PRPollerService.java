@@ -10,6 +10,7 @@ import in.techseva.cb.core.repository.VulnerabilityRepository;
 import in.techseva.cb.core.service.AuditService;
 import in.techseva.cb.pr.client.GitHubEnterpriseClient;
 import in.techseva.cb.pr.client.GitHubEnterpriseClient.GitPR;
+import jakarta.annotation.PostConstruct;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.lib.Repository;
@@ -78,6 +79,33 @@ public class PRPollerService {
         this.reviewerUsername = reviewerUsername;
     }
 
+    @PostConstruct
+    public void ensureRepoCloned() {
+        if (repoOwner.isBlank() || repoName.isBlank()) return;
+        File repoDir = new File(repoRoot);
+        if (new File(repoDir, ".git").exists()) {
+            log.info("Repo already cloned at {}", repoRoot);
+            return;
+        }
+        String cloneUrl = "https://github.com/" + repoOwner + "/" + repoName + ".git";
+        log.info("Cloning {} into {}", cloneUrl, repoRoot);
+        try {
+            var cloneCmd = Git.cloneRepository().setURI(cloneUrl).setDirectory(repoDir);
+            if (!githubToken.isBlank()) {
+                cloneCmd.setCredentialsProvider(
+                    new UsernamePasswordCredentialsProvider("token", githubToken));
+            }
+            cloneCmd.call().close();
+            log.info("Clone complete: {}", repoRoot);
+        } catch (Exception e) {
+            log.error("Failed to clone repo {}: {}", cloneUrl, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Polls for all FIX_VALIDATED vulnerabilities and raises ONE single PR
+     * containing all fixes combined on a single branch.
+     */
     @Scheduled(fixedDelayString = "${pr.poll-interval-ms:60000}", initialDelay = 20000)
     public synchronized void pollForValidatedFixes() {
         List<Vulnerability> pending = vulnerabilityRepo.findByStatus(VulnerabilityStatus.FIX_VALIDATED);
@@ -85,8 +113,10 @@ public class PRPollerService {
             log.debug("No FIX_VALIDATED vulnerabilities to raise PRs for");
             return;
         }
-        log.info("PR service found {} FIX_VALIDATED vulnerabilities", pending.size());
+        log.info("PR service found {} FIX_VALIDATED vulnerabilities — bundling into ONE PR", pending.size());
 
+        // Collect all fixes that are ready
+        List<VulnFixPair> pairs = new ArrayList<>();
         for (Vulnerability vuln : pending) {
             Optional<Fix> fixOpt = fixRepo.findFirstByVulnerabilityIdOrderByGeneratedAtDesc(vuln.id());
             if (fixOpt.isEmpty()) { log.warn("No fix for vuln={}", vuln.id()); continue; }
@@ -94,111 +124,124 @@ public class PRPollerService {
             if (fix.status() != FixStatus.BUILD_VALIDATED) {
                 log.debug("Fix {} status={}, skipping", fix.id(), fix.status()); continue;
             }
-            raisePR(vuln, fix);
+            pairs.add(new VulnFixPair(vuln, fix));
         }
+
+        if (pairs.isEmpty()) {
+            log.info("No BUILD_VALIDATED fixes ready yet");
+            return;
+        }
+
+        raiseBatchPR(pairs);
     }
 
-    private void raisePR(Vulnerability vuln, Fix fix) {
-        log.info("Raising PR for fix={} vuln={}", fix.id(), vuln.id());
-        String branchName = "cb/fix-" + (vuln.cweId() != null ? vuln.cweId().toLowerCase().replace(":", "-") : "unknown")
-                + "-" + fix.id().substring(0, Math.min(12, fix.id().length()));
+    private void raiseBatchPR(List<VulnFixPair> pairs) {
+        String branchName = "cb/security-fixes-batch";
+        log.info("Raising single batch PR on branch {} for {} fixes", branchName, pairs.size());
+
         try {
             resetRepo();
-            applyDiff(repoRoot, fix.patchDiff());
 
-            boolean pushed = commitAndPush(branchName, vuln, fix);
+            // Apply all diffs to the working tree
+            int applied = 0;
+            for (VulnFixPair pair : pairs) {
+                try {
+                    applyDiff(repoRoot, pair.fix().patchDiff(), pair.vuln().filePath());
+                    applied++;
+                } catch (Exception e) {
+                    log.warn("Could not apply diff for vuln={}: {}", pair.vuln().id(), e.getMessage());
+                }
+            }
+
+            boolean pushed = commitAndPush(branchName, pairs);
             if (!pushed) {
-                log.warn("Nothing to push for fix={} (diff may be empty or file not found), skipping PR", fix.id());
-                // Still mark as PR_RAISED with a note so we don't retry endlessly
-                vulnerabilityRepo.save(vuln.withStatus(VulnerabilityStatus.PR_RAISED));
+                log.warn("Nothing to push — no diffs produced file changes. Marking all as PR_RAISED to avoid retry.");
+                for (VulnFixPair pair : pairs) {
+                    vulnerabilityRepo.save(pair.vuln().withStatus(VulnerabilityStatus.PR_RAISED));
+                }
                 return;
             }
 
-            String prTitle = "[CB] Fix " + vuln.cweId() + " in " +
-                    (vuln.filePath() != null ? vuln.filePath().substring(Math.max(0, vuln.filePath().lastIndexOf('/') + 1)) : "unknown") +
-                    " (severity: " + vuln.severity() + ")";
-            String prBody = buildPrBody(vuln, fix);
-            GitPR pr = null;
+            String prTitle = "[CB] Security Fixes — " + pairs.size() + " vulnerabilities auto-remediated";
+            String prBody  = buildBatchPrBody(pairs);
+
+            GitPR pr;
             try {
                 pr = githubClient.createPullRequest(repoOwner, repoName, branchName, prTitle, prBody);
             } catch (Exception prEx) {
-                // PR already exists is acceptable — mark as raised anyway
                 if (prEx.getMessage() != null && prEx.getMessage().contains("already exists")) {
-                    log.warn("PR already exists for branch {}, marking vuln as PR_RAISED anyway", branchName);
-                    vulnerabilityRepo.save(vuln.withStatus(VulnerabilityStatus.PR_RAISED));
+                    log.warn("PR already exists for branch {}, marking all vulns as PR_RAISED", branchName);
+                    for (VulnFixPair pair : pairs) {
+                        vulnerabilityRepo.save(pair.vuln().withStatus(VulnerabilityStatus.PR_RAISED));
+                    }
                     return;
                 }
                 throw prEx;
             }
             if (pr == null) throw new RuntimeException("GitHub returned null PR");
-            fixRepo.save(fix.withPrDetails(pr.htmlUrl(), pr.number(), branchName));
-            vulnerabilityRepo.save(vuln.withStatus(VulnerabilityStatus.PR_RAISED));
-            auditService.log(fix.id(), "Fix", "PR_RAISED", "pr-service",
-                    Map.of("prNumber", pr.number(), "prUrl", pr.htmlUrl()));
-            log.info("PR #{} raised: {}", pr.number(), pr.htmlUrl());
 
-            // Fire-and-forget: reviewer requests and AI review run in background
-            // so the scheduler thread is not blocked by network/GPT calls
+            // Mark all vulns and fixes as PR_RAISED
+            for (VulnFixPair pair : pairs) {
+                fixRepo.save(pair.fix().withPrDetails(pr.htmlUrl(), pr.number(), branchName));
+                vulnerabilityRepo.save(pair.vuln().withStatus(VulnerabilityStatus.PR_RAISED));
+                auditService.log(pair.fix().id(), "Fix", "PR_RAISED", "pr-service",
+                        Map.of("prNumber", pr.number(), "prUrl", pr.htmlUrl()));
+            }
+            log.info("Batch PR #{} raised with {} fixes: {}", pr.number(), pairs.size(), pr.htmlUrl());
+
             final int prNumber = pr.number();
             final String prUrl = pr.htmlUrl();
-            final Vulnerability vulnFinal = vuln;
-            final Fix fixFinal = fix;
-            CompletableFuture.runAsync(() -> {
-                requestReviewers(prNumber);
-                aiReviewService.reviewAndPost(vulnFinal, fixFinal, prNumber, prUrl);
-            }).exceptionally(ex -> {
-                log.error("Async reviewer/review failed for PR #{}: {}", prNumber, ex.getMessage(), ex);
-                return null;
-            });
+            CompletableFuture.runAsync(() -> requestReviewers(prNumber))
+                .exceptionally(ex -> { log.error("Reviewer request failed: {}", ex.getMessage()); return null; });
 
         } catch (Exception e) {
-            log.error("PR creation failed for fix={}: {}", fix.id(), e.getMessage(), e);
-            auditService.log(fix.id(), "Fix", "PR_FAILED", "pr-service", Map.of("error", e.getMessage()));
+            log.error("Batch PR creation failed: {}", e.getMessage(), e);
+            for (VulnFixPair pair : pairs) {
+                auditService.log(pair.fix().id(), "Fix", "PR_FAILED", "pr-service",
+                        Map.of("error", e.getMessage()));
+            }
         }
     }
 
     private void requestReviewers(int prNumber) {
-        // Human reviewer
         if (reviewerUsername != null && !reviewerUsername.isBlank()) {
             githubClient.requestReviewers(repoOwner, repoName, prNumber, List.of(reviewerUsername));
         }
-        // GitHub Copilot code review (may fail gracefully if not enabled on the repo)
         githubClient.requestReviewers(repoOwner, repoName, prNumber, List.of("github-copilot"));
     }
 
-    private boolean commitAndPush(String branchName, Vulnerability vuln, Fix fix) throws Exception {
+    private boolean commitAndPush(String branchName, List<VulnFixPair> pairs) throws Exception {
         File repoDir = new File(repoRoot);
         try (Repository repo = new FileRepositoryBuilder()
                 .setGitDir(new File(repoDir, ".git"))
                 .build();
              Git git = new Git(repo)) {
 
-            // Check if there are any changes to commit
             var status = git.status().call();
             if (status.getModified().isEmpty() && status.getAdded().isEmpty()
                     && status.getUntracked().isEmpty() && status.getChanged().isEmpty()) {
-                log.warn("No changes in working tree for fix={}", fix.id());
+                log.warn("No changes in working tree after applying {} diffs", pairs.size());
                 return false;
             }
 
-            // Delete local branch if it already exists from a previous run
+            // Delete branch if it already exists from a prior run
             try { git.branchDelete().setBranchNames(branchName).setForce(true).call(); } catch (Exception ignored) {}
 
             git.checkout().setCreateBranch(true).setName(branchName).call();
             git.add().addFilepattern(".").call();
+
+            String commitMsg = buildCommitMessage(pairs);
             git.commit()
-                    .setMessage("fix(" + vuln.cweId() + "): Auto-remediated by Compliance Buddy\n\n" +
-                            "Vulnerability: " + vuln.sonarIssueKey() + "\n" +
-                            "Fix: " + fix.id() + "\n" +
-                            "Confidence: " + fix.confidence())
+                    .setMessage(commitMsg)
                     .setAuthor("Compliance Buddy", "cb-bot@techseva.in")
                     .setCommitter("Compliance Buddy", "cb-bot@techseva.in")
                     .call();
             git.push()
                     .setCredentialsProvider(new UsernamePasswordCredentialsProvider("token", githubToken))
                     .setRemote("origin")
+                    .setForce(true)
                     .call();
-            log.info("Pushed branch {} to remote", branchName);
+            log.info("Pushed branch {} with {} fixes to remote", branchName, pairs.size());
             return true;
         }
     }
@@ -220,12 +263,27 @@ public class PRPollerService {
         }
     }
 
-    private void applyDiff(String repoRoot, String unifiedDiff) throws Exception {
+    private String stripCodeFences(String diff) {
+        String trimmed = diff.strip();
+        if (trimmed.startsWith("```")) {
+            int firstNewline = trimmed.indexOf('\n');
+            if (firstNewline > 0) trimmed = trimmed.substring(firstNewline + 1).stripLeading();
+            int lastFence = trimmed.lastIndexOf("```");
+            if (lastFence > 0) trimmed = trimmed.substring(0, lastFence).stripTrailing();
+        }
+        return trimmed;
+    }
+
+    private void applyDiff(String repoRoot, String unifiedDiff, String fallbackFilePath) throws Exception {
         if (unifiedDiff == null || unifiedDiff.isBlank()) return;
-        List<FilePatch> patches = parseDiff(unifiedDiff);
+        List<FilePatch> patches = parseDiff(stripCodeFences(unifiedDiff), fallbackFilePath);
+        Path repoPath = Paths.get(repoRoot);
         for (FilePatch patch : patches) {
-            Path targetFile = Paths.get(repoRoot, patch.filePath());
-            if (!Files.exists(targetFile)) { log.warn("File not found: {}", targetFile); continue; }
+            Path targetFile = resolveFile(repoPath, patch.filePath());
+            if (targetFile == null) {
+                log.warn("File not found anywhere under {}: {}", repoRoot, patch.filePath());
+                continue;
+            }
             List<String> lines = new ArrayList<>(Files.readAllLines(targetFile));
             applyHunks(lines, patch.hunks());
             Files.write(targetFile, lines);
@@ -233,7 +291,23 @@ public class PRPollerService {
         }
     }
 
-    private List<FilePatch> parseDiff(String diff) throws Exception {
+    private Path resolveFile(Path repoRoot, String diffPath) throws Exception {
+        Path direct = repoRoot.resolve(diffPath);
+        if (Files.exists(direct)) return direct;
+        try (var children = Files.list(repoRoot)) {
+            java.util.Optional<Path> found = children.filter(Files::isDirectory)
+                .map(sub -> sub.resolve(diffPath)).filter(Files::exists).findFirst();
+            if (found.isPresent()) return found.get();
+        }
+        String fileName = Paths.get(diffPath).getFileName().toString();
+        try (var walk = Files.walk(repoRoot)) {
+            return walk.filter(p -> p.getFileName().toString().equals(fileName))
+                .filter(p -> p.toString().replace('\\', '/').endsWith(diffPath.replace('\\', '/')))
+                .findFirst().orElse(null);
+        }
+    }
+
+    private List<FilePatch> parseDiff(String diff, String fallbackFilePath) throws Exception {
         List<FilePatch> patches = new ArrayList<>();
         String currentFile = null;
         List<Hunk> hunks = new ArrayList<>();
@@ -250,6 +324,11 @@ public class PRPollerService {
                 }
                 Matcher hm = HUNK_HEADER.matcher(line);
                 if (hm.matches()) {
+                    if (currentFile == null && fallbackFilePath != null) {
+                        log.debug("No +++ b/ header found, using fallback filePath: {}", fallbackFilePath);
+                        currentFile = fallbackFilePath;
+                        hunks = new ArrayList<>();
+                    }
                     if (hunkLines != null) hunks.add(new Hunk(hunkStart, new ArrayList<>(hunkLines)));
                     hunkStart = Integer.parseInt(hm.group(1)); hunkLines = new ArrayList<>(); continue;
                 }
@@ -257,7 +336,10 @@ public class PRPollerService {
                     hunkLines.add(line);
             }
         }
-        if (currentFile != null) { if (hunkLines != null) hunks.add(new Hunk(hunkStart, hunkLines)); patches.add(new FilePatch(currentFile, hunks)); }
+        if (currentFile != null) {
+            if (hunkLines != null) hunks.add(new Hunk(hunkStart, hunkLines));
+            patches.add(new FilePatch(currentFile, hunks));
+        }
         return patches;
     }
 
@@ -277,20 +359,54 @@ public class PRPollerService {
         }
     }
 
-    private String buildPrBody(Vulnerability vuln, Fix fix) {
-        return "## Compliance Buddy -- Automated Security Fix\n\n" +
-                "| Field | Value |\n|-------|-------|\n" +
-                "| **CWE** | " + vuln.cweId() + " |\n" +
-                "| **Severity** | " + vuln.severity() + " |\n" +
-                "| **OWASP** | " + vuln.owaspCategory() + " |\n" +
-                "| **File** | `" + vuln.filePath() + "` line " + vuln.lineNo() + " |\n" +
-                "| **Confidence** | " + String.format("%.0f%%", fix.confidence() * 100) + " |\n" +
-                "| **Strategy** | " + fix.strategy() + " |\n" +
-                "| **Model** | " + fix.llmModel() + " |\n\n" +
-                "### Explanation\n\n" + fix.explanation() + "\n\n" +
-                "---\n*Generated by Compliance Buddy -- do not merge without human review*";
+    private String buildCommitMessage(List<VulnFixPair> pairs) {
+        StringBuilder sb = new StringBuilder("fix(security): Auto-remediate ");
+        sb.append(pairs.size()).append(" vulnerabilities by Compliance Buddy\n\n");
+        for (VulnFixPair pair : pairs) {
+            sb.append("- ").append(pair.vuln().cweId())
+              .append(" in ").append(fileName(pair.vuln().filePath()))
+              .append(" (").append(pair.vuln().severity()).append(")")
+              .append(" fix=").append(pair.fix().id()).append("\n");
+        }
+        return sb.toString();
     }
 
+    private String buildBatchPrBody(List<VulnFixPair> pairs) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("## Compliance Buddy — Automated Security Fixes\n\n");
+        sb.append("This PR contains **").append(pairs.size()).append(" auto-generated security fixes**.\n\n");
+        sb.append("| # | CWE | Severity | File | Line | Confidence | Strategy |\n");
+        sb.append("|---|-----|----------|------|------|------------|----------|\n");
+        for (int i = 0; i < pairs.size(); i++) {
+            Vulnerability v = pairs.get(i).vuln();
+            Fix f = pairs.get(i).fix();
+            sb.append("| ").append(i + 1)
+              .append(" | ").append(v.cweId())
+              .append(" | ").append(v.severity())
+              .append(" | `").append(fileName(v.filePath())).append("`")
+              .append(" | ").append(v.lineNo())
+              .append(" | ").append(String.format("%.0f%%", f.confidence() * 100))
+              .append(" | ").append(f.strategy())
+              .append(" |\n");
+        }
+        sb.append("\n### Fix Explanations\n\n");
+        for (int i = 0; i < pairs.size(); i++) {
+            Vulnerability v = pairs.get(i).vuln();
+            Fix f = pairs.get(i).fix();
+            sb.append("**").append(i + 1).append(". ").append(v.cweId())
+              .append(" — ").append(fileName(v.filePath())).append("**\n");
+            sb.append(f.explanation()).append("\n\n");
+        }
+        sb.append("---\n*Generated by Compliance Buddy — review all changes before merging*");
+        return sb.toString();
+    }
+
+    private String fileName(String filePath) {
+        if (filePath == null) return "unknown";
+        return filePath.substring(Math.max(0, filePath.lastIndexOf('/') + 1));
+    }
+
+    record VulnFixPair(Vulnerability vuln, Fix fix) {}
     record FilePatch(String filePath, List<Hunk> hunks) {}
     record Hunk(int startLine, List<String> lines) {}
 }

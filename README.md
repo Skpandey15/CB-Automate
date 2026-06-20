@@ -466,16 +466,76 @@ RESOLVED       PR merged
 
 ## CWE Coverage
 
-| CWE     | Description              | Strategy                                |
-|---------|--------------------------|-----------------------------------------|
-| CWE-89  | SQL Injection            | PreparedStatement / JPA named params    |
-| CWE-79  | XSS                      | HtmlUtils.htmlEscape + CSP header       |
-| CWE-78  | Command Injection        | ProcessBuilder with arg list            |
-| CWE-22  | Path Traversal           | Path canonicalization + base-dir check  |
-| CWE-798 | Hardcoded Credentials    | Vault / @Value injection                |
-| CWE-327 | Broken Crypto            | SHA-256+ / BCrypt                       |
-| CWE-918 | SSRF                     | URL allow-list validation               |
-| CWE-330 | Insufficient Randomness  | SecureRandom                            |
+| CWE      | Description                        | Strategy                                         |
+|----------|------------------------------------|--------------------------------------------------|
+| CWE-89   | SQL Injection                      | PreparedStatement / JPA named params             |
+| CWE-79   | XSS                                | HtmlUtils.htmlEscape + CSP header                |
+| CWE-78   | Command Injection                  | ProcessBuilder with arg list                     |
+| CWE-22   | Path Traversal                     | Path canonicalization + base-dir check           |
+| CWE-798  | Hardcoded Credentials              | Vault / @Value injection                         |
+| CWE-327  | Broken Crypto                      | SHA-256+ / BCrypt                                |
+| CWE-918  | SSRF                               | URL allow-list validation                        |
+| CWE-330  | Insufficient Randomness            | SecureRandom                                     |
+| CWE-1104 | Vulnerable/Outdated Dependency     | Upgrade to latest stable via OSS Index + Maven Central |
+
+---
+
+## Dependency Vulnerability Scanning
+
+CB now detects CVEs in Gradle dependencies (not just source-code issues) and automatically upgrades the vulnerable version in `build.gradle`.
+
+### How it works
+
+```
+build.gradle files ──► GradleDependencyParser
+                              │
+                        (list of group:artifact:version)
+                              │
+                        OssIndexClient (pkg:maven purl query)
+                              │
+                        CVEs found? ──► MavenCentralClient (latest stable version)
+                              │
+                        Vulnerability(type=DEPENDENCY, safeVersion=X.Y.Z)
+                              │
+                        [Kafka: vulnerabilities.detected]
+                              │
+                        cb-agent (GPT-4o + getSafeVersion tool)
+                              │
+                        Fix(gradlePatch="group:artifact:old -> new", patchDiff=null)
+                              │
+                        cb-patcher (GradlePatcher walks ALL build.gradle / .kts / gradle.properties)
+                              │
+                        Build validation ──► PR raised ──► RESOLVED
+```
+
+### Trigger a dependency scan
+
+```powershell
+$h = @{ "X-API-Key" = "dev-key-change-in-prod" }
+
+# Scan the configured repo root
+Invoke-RestMethod -Method POST -Headers $h `
+  -Uri "http://compliance-buddy.local/api/v1/scans/deps"
+
+# Or with a custom project key for grouping
+Invoke-RestMethod -Method POST -Headers $h `
+  -Uri "http://compliance-buddy.local/api/v1/scans/deps/my-project"
+```
+
+### Configuration
+
+Add to `k8s/base/secrets.yaml`:
+
+```yaml
+# Path to the repo CB should scan — must be mounted in the cb-scanner pod
+DEP_SCANNER_REPO_ROOT: "/workspace/repo"
+
+# Optional: OSS Index credentials for higher rate limits (free at ossindex.sonatype.org)
+OSS_INDEX_USERNAME: ""
+OSS_INDEX_TOKEN: ""
+```
+
+The scanner also runs automatically every 10 minutes (configurable via `DEP_SCANNER_POLL_INTERVAL_MS`).
 
 ---
 

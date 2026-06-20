@@ -41,6 +41,11 @@ patcher:
   repo-root: ${PATCHER_REPO_ROOT:/workspace/repo}
   build-timeout-minutes: ${PATCHER_BUILD_TIMEOUT_MINUTES:10}
 
+github:
+  owner: ${GITHUB_OWNER:}
+  repo: ${GITHUB_REPO:}
+  token: ${GITHUB_TOKEN:}
+
 management:
   endpoints:
     web:

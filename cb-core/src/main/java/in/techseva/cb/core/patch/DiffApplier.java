@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,16 +22,21 @@ public class DiffApplier {
     private static final Pattern FILE_HEADER = Pattern.compile("^\\+\\+\\+ b/(.+)$");
 
     public void applyDiff(String repoRoot, String unifiedDiff) throws IOException {
+        applyDiff(repoRoot, unifiedDiff, null);
+    }
+
+    public void applyDiff(String repoRoot, String unifiedDiff, String fallbackFilePath) throws IOException {
         if (unifiedDiff == null || unifiedDiff.isBlank()) {
             log.debug("Empty diff, nothing to apply");
             return;
         }
 
-        List<FilePatch> patches = parseDiff(unifiedDiff);
+        List<FilePatch> patches = parseDiff(stripCodeFences(unifiedDiff), fallbackFilePath);
+        Path repoPath = Paths.get(repoRoot);
         for (FilePatch patch : patches) {
-            Path targetFile = Paths.get(repoRoot, patch.filePath());
-            if (!Files.exists(targetFile)) {
-                log.warn("Target file not found, skipping: {}", targetFile);
+            Path targetFile = resolveFile(repoPath, patch.filePath());
+            if (targetFile == null) {
+                log.warn("Target file not found anywhere under {}: {}", repoRoot, patch.filePath());
                 continue;
             }
             List<String> lines = new ArrayList<>(Files.readAllLines(targetFile));
@@ -40,7 +46,52 @@ public class DiffApplier {
         }
     }
 
-    private List<FilePatch> parseDiff(String diff) throws IOException {
+    /**
+     * Resolves the diff file path to an actual file under repoRoot.
+     * Tries the path as-is first, then searches one level of subdirectories
+     * (handles repos where source lives in a subdirectory like springboot-microservices/).
+     */
+    private Path resolveFile(Path repoRoot, String diffPath) throws IOException {
+        // Try direct path first
+        Path direct = repoRoot.resolve(diffPath);
+        if (Files.exists(direct)) return direct;
+
+        // Try each immediate subdirectory (e.g. springboot-microservices/auth-service/...)
+        try (var children = Files.list(repoRoot)) {
+            Optional<Path> found = children
+                .filter(Files::isDirectory)
+                .map(sub -> sub.resolve(diffPath))
+                .filter(Files::exists)
+                .findFirst();
+            if (found.isPresent()) {
+                log.debug("Resolved {} under subdirectory {}", diffPath, found.get());
+                return found.get();
+            }
+        }
+
+        // Search the whole tree by filename as last resort
+        String fileName = Paths.get(diffPath).getFileName().toString();
+        try (var walk = Files.walk(repoRoot)) {
+            Optional<Path> found = walk
+                .filter(p -> p.getFileName().toString().equals(fileName))
+                .filter(p -> p.toString().replace('\\', '/').endsWith(diffPath.replace('\\', '/')))
+                .findFirst();
+            return found.orElse(null);
+        }
+    }
+
+    private String stripCodeFences(String diff) {
+        String trimmed = diff.strip();
+        if (trimmed.startsWith("```")) {
+            int firstNewline = trimmed.indexOf('\n');
+            if (firstNewline > 0) trimmed = trimmed.substring(firstNewline + 1).stripLeading();
+            int lastFence = trimmed.lastIndexOf("```");
+            if (lastFence > 0) trimmed = trimmed.substring(0, lastFence).stripTrailing();
+        }
+        return trimmed;
+    }
+
+    private List<FilePatch> parseDiff(String diff, String fallbackFilePath) throws IOException {
         List<FilePatch> patches = new ArrayList<>();
         String currentFile = null;
         List<Hunk> hunks = new ArrayList<>();
@@ -65,6 +116,12 @@ public class DiffApplier {
                 }
                 Matcher hunkMatcher = HUNK_HEADER.matcher(line);
                 if (hunkMatcher.matches()) {
+                    // If we see a hunk header but no +++ b/ yet, use the fallback file path
+                    if (currentFile == null && fallbackFilePath != null) {
+                        log.debug("No +++ b/ header found, using fallback filePath: {}", fallbackFilePath);
+                        currentFile = fallbackFilePath;
+                        hunks = new ArrayList<>();
+                    }
                     if (hunkLines != null) {
                         hunks.add(new Hunk(hunkStart, new ArrayList<>(hunkLines)));
                     }

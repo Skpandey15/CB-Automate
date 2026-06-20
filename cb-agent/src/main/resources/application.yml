@@ -92,6 +92,11 @@ ollama:
     low-severity: ${OLLAMA_MODEL_LOW:llama3:8b}
     medium-severity: ${OLLAMA_MODEL_MEDIUM:qwen2:7b}
 
+github:
+  owner: ${GITHUB_OWNER:}
+  repo: ${GITHUB_REPO:}
+  token: ${GITHUB_TOKEN:}
+
 embedder:
   url: ${EMBEDDER_URL:http://localhost:8090}
 

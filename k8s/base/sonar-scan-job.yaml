@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sonar-scan-mrl
+  namespace: cb-system
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: sonar-scanner
+          image: maven:3.9-eclipse-temurin-17
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Cloning repo..."
+              git clone https://github.com/Skpandey15/microservices-rate-limiting /tmp/repo
+              cd /tmp/repo/springboot-microservices
+              echo "Compiling and scanning..."
+              mvn compile sonar:sonar \
+                -Dsonar.host.url=http://cb-sonarqube:9000/sonar \
+                -Dsonar.token=${SONARQUBE_TOKEN} \
+                -Dsonar.projectKey=microservices-rate-limiting \
+                -Dsonar.projectName="Microservices Rate Limiting" \
+                --no-transfer-progress 2>&1 | tail -20
+              echo "Scan complete."
+          env:
+            - name: SONARQUBE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: SONARQUBE_TOKEN
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
