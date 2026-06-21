@@ -22,6 +22,7 @@ public class DepsDevClient {
 
     private static final Logger log = LoggerFactory.getLogger(DepsDevClient.class);
     private static final String BASE_URL = "https://api.deps.dev/v3alpha/systems/maven/packages";
+    private static final String ADVISORY_URL = "https://api.deps.dev/v3alpha/advisories";
 
     private final RestClient restClient;
 
@@ -31,22 +32,40 @@ public class DepsDevClient {
 
     /**
      * Returns a list of advisory reports for the given dependency, or empty if none found.
+     * Step 1: GET /versions/{version} → read advisoryKeys[]
+     * Step 2: GET /advisories/{id}    → fetch full details for each key
      */
     public List<Advisory> getAdvisories(String groupId, String artifactId, String version) {
         try {
-            // URL: /v3alpha/systems/maven/packages/{package}/versions/{version}:advisories
             String pkg = groupId + ":" + artifactId;
-            String url = UriComponentsBuilder.fromHttpUrl(BASE_URL)
-                    .pathSegment(pkg, "versions", version + ":advisories")
+            String versionUrl = UriComponentsBuilder.fromHttpUrl(BASE_URL)
+                    .pathSegment(pkg, "versions", version)
                     .build().toUriString();
 
-            AdvisoryResponse response = restClient.get()
-                    .uri(url)
+            VersionResponse versionResponse = restClient.get()
+                    .uri(versionUrl)
                     .retrieve()
-                    .body(AdvisoryResponse.class);
+                    .body(VersionResponse.class);
 
-            if (response == null || response.advisories() == null) return Collections.emptyList();
-            return response.advisories();
+            if (versionResponse == null || versionResponse.advisoryKeys() == null
+                    || versionResponse.advisoryKeys().isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            List<Advisory> advisories = new ArrayList<>();
+            for (AdvisoryKey key : versionResponse.advisoryKeys()) {
+                if (key.id() == null) continue;
+                try {
+                    Advisory advisory = restClient.get()
+                            .uri(ADVISORY_URL + "/" + key.id())
+                            .retrieve()
+                            .body(Advisory.class);
+                    if (advisory != null) advisories.add(advisory);
+                } catch (Exception e) {
+                    log.debug("deps.dev advisory {}: {}", key.id(), e.getMessage());
+                }
+            }
+            return advisories;
         } catch (Exception e) {
             log.debug("deps.dev lookup: {}:{}:{} — {}", groupId, artifactId, version, e.getMessage());
             return Collections.emptyList();
@@ -54,8 +73,8 @@ public class DepsDevClient {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record AdvisoryResponse(
-            @JsonProperty("advisories") List<Advisory> advisories) {}
+    public record VersionResponse(
+            @JsonProperty("advisoryKeys") List<AdvisoryKey> advisoryKeys) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Advisory(
@@ -79,7 +98,8 @@ public class DepsDevClient {
         }
 
         public double severity() {
-            return cvss3Score != null ? cvss3Score : 0.0;
+            // cvss3Score may be 0 for GHSA advisories without CVSS — default to MAJOR (5.0)
+            return (cvss3Score != null && cvss3Score > 0) ? cvss3Score : 5.0;
         }
     }
 
