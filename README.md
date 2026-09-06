@@ -1,5 +1,23 @@
 # Compliance Buddy (CB)
 
+## Dependency remediation from a GitHub branch
+
+For **repository + branch → dependency scan → verified upgrades → PR → email**, use
+the [branch dependency remediation runner](docs/dependency-remediation.md):
+
+```powershell
+python scripts/dependency-remediation/remediate.py --repo Skpandey15/CB-Automate --branch main
+```
+
+This previews in an isolated checkout. Add `--publish --recipient team@example.com`
+after configuring GitHub authentication and SMTP to publish and notify. Maven and
+Gradle resolved dependencies are scanned, including transitives; unsupported fixes
+are reported for manual remediation. See [ADR 0001](docs/adr/0001-branch-dependency-remediation.md)
+for scope and design. This runner is independent of the legacy Java dependency
+endpoints and the SonarQube pipeline described below.
+
+## SonarQube and AI code remediation
+
 Autonomous security remediation agent. Detects SonarQube vulnerabilities, generates
 AI-powered fixes via a multi-agent LangGraph4j workflow (GPT-4o / Claude / Ollama),
 applies patches, opens GitHub PRs, and escalates to Jira + Teams — all through a
