@@ -5,6 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import in.techseva.cb.core.domain.Severity;
 import in.techseva.cb.core.domain.Vulnerability;
 import in.techseva.cb.core.domain.VulnerabilityStatus;
+import in.techseva.cb.core.domain.VulnerabilityType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -30,7 +31,8 @@ class OntologyMapperTest {
                 Severity.CRITICAL, "java:S2078", 42, "30min",
                 VulnerabilityStatus.DETECTED, "SQL injection risk",
                 "A03:2021", "my-proj", "my-proj:src/Dao.java",
-                "src/Dao.java", null, 0, Instant.now(), Instant.now(), null, null);
+                "src/Dao.java", null, 0, Instant.now(), Instant.now(), null, null,
+                VulnerabilityType.CODE, null, null, null, null, null);
 
         Map<String, Object> jsonLd = mapper.vulnerabilityToJsonLd(vuln);
 
@@ -49,7 +51,8 @@ class OntologyMapperTest {
                 VulnerabilityStatus.DETECTED, "XSS risk",
                 "A03:2021", "proj2", "proj2:src/Controller.java",
                 "src/Controller.java", null, 0,
-                Instant.now(), Instant.now(), null, null);
+                Instant.now(), Instant.now(), null, null,
+                VulnerabilityType.CODE, null, null, null, null, null);
 
         String jsonLd = mapper.vulnerabilityToJsonLdString(vuln);
         assertThat(jsonLd).contains("cb:Vulnerability");

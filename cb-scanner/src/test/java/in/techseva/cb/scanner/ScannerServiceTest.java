@@ -2,16 +2,17 @@ package in.techseva.cb.scanner;
 
 import in.techseva.cb.core.domain.Vulnerability;
 import in.techseva.cb.core.domain.VulnerabilityStatus;
+import in.techseva.cb.core.domain.VulnerabilityType;
 import in.techseva.cb.core.events.VulnerabilityDetectedEvent;
 import in.techseva.cb.core.repository.VulnerabilityRepository;
 import in.techseva.cb.core.service.AuditService;
 import in.techseva.cb.scanner.client.SonarQubeClient;
 import in.techseva.cb.scanner.mapper.SonarIssueMapper;
+import in.techseva.cb.scanner.kafka.VulnerabilityKafkaPublisher;
 import in.techseva.cb.scanner.service.ScannerService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -31,8 +32,7 @@ class ScannerServiceTest {
     @Mock SonarIssueMapper issueMapper;
     @Mock ApplicationEventPublisher eventPublisher;
     @Mock AuditService auditService;
-
-    @InjectMocks ScannerService scannerService;
+    @Mock VulnerabilityKafkaPublisher kafkaPublisher;
 
     @Test
     void scanProject_newIssue_publishesEvent() {
@@ -48,7 +48,8 @@ class ScannerServiceTest {
                 "java:S2078", 42, "30min", VulnerabilityStatus.DETECTED,
                 "Potential SQL injection", "A03:2021", "my-proj",
                 "my-proj:src/Foo.java", "src/Foo.java", null, 0,
-                Instant.now(), Instant.now(), null, null);
+                Instant.now(), Instant.now(), null, null,
+                VulnerabilityType.CODE, null, null, null, null, null);
 
         when(sonarClient.getSecurityIssues("my-proj", 1)).thenReturn(response);
         when(vulnerabilityRepo.existsBySonarIssueKey("SONAR-001")).thenReturn(false);
@@ -57,7 +58,7 @@ class ScannerServiceTest {
 
         // Need to inject monitoredProjects — use direct instantiation
         var svc = new ScannerService(sonarClient, vulnerabilityRepo, issueMapper,
-                eventPublisher, auditService, List.of("my-proj"));
+                eventPublisher, auditService, kafkaPublisher, List.of("my-proj"));
 
         int count = svc.scanProject("my-proj");
 
@@ -65,6 +66,7 @@ class ScannerServiceTest {
         var captor = ArgumentCaptor.forClass(VulnerabilityDetectedEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
         assertThat(captor.getValue().getVulnerability().sonarIssueKey()).isEqualTo("SONAR-001");
+        verify(kafkaPublisher).publish(vuln);
     }
 
     @Test
@@ -80,10 +82,11 @@ class ScannerServiceTest {
         when(vulnerabilityRepo.existsBySonarIssueKey("SONAR-002")).thenReturn(true);
 
         var svc = new ScannerService(sonarClient, vulnerabilityRepo, issueMapper,
-                eventPublisher, auditService, List.of("my-proj"));
+                eventPublisher, auditService, kafkaPublisher, List.of("my-proj"));
         int count = svc.scanProject("my-proj");
 
         assertThat(count).isEqualTo(0);
         verify(eventPublisher, never()).publishEvent(any());
+        verifyNoInteractions(kafkaPublisher);
     }
 }
