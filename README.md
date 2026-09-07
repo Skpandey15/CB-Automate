@@ -1,5 +1,8 @@
 # Compliance Buddy (CB)
 
+Architecture-impacting contributions must follow the [ADR governance guide](docs/adr/README.md)
+and reference an Accepted decision in the [PR template](.github/pull_request_template.md).
+
 ## Dependency remediation from a GitHub branch
 
 For **repository + branch → dependency scan → verified upgrades → PR → email**, use
