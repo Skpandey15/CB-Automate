@@ -1,11 +1,14 @@
 <!-- Fill each field below with concrete text, outside code fences.
-Architecture-impacting changes require an Accepted ADR BEFORE implementation.
+Architecture-impacting implementation requires an ADR already Accepted in PR BASE.
+Merge the reviewed ADR first, then create the implementation branch/PR.
+For ADR-only decision/documentation PRs use "yes", "none", and scope
+"ADR-only decision record; no runtime implementation". The actual diff must qualify.
 Use "no" and "none" for harmless changes and explain why in Implementation-Scope.
 Reviewers: apply architecture-impacting if classification needs correction.
 See docs/adr/README.md for mandatory ADR categories and immutable history. -->
 
 Architecture-Impact: <yes or no>
-Architecture-Decision: <ADR-XXXX, or none for non-architectural changes>
+Architecture-Decision: <ADR-XXXX already Accepted in BASE, or none for ADR-only/non-architectural changes>
 Implementation-Scope: <concrete behavior change and boundaries>
 Migration-Impact: <compatibility, data/contracts/deployment impact, or explain none>
 Rollback: <revert/recovery steps>

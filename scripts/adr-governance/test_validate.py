@@ -4,7 +4,7 @@ import subprocess
 import tempfile
 import unittest
 
-from validate import (GitRepository, ValidationError, main, validate_pr,
+from validate import (GitRepository, ValidationError, decision_only_changes, main, validate_pr,
                       validate_repository)
 
 
@@ -15,6 +15,10 @@ Migration-Impact: No runtime or data migration.
 Rollback: Revert tooling and retain historical decisions.
 Fitness-Functions: Unit and local Git integration tests passed.
 '''
+
+ADR_ONLY_BODY = BODY.replace('Architecture-Decision: ADR-0013', 'Architecture-Decision: none').replace(
+    'Implementation-Scope: Require Accepted ADR references for architectural changes.',
+    'Implementation-Scope: ADR-only decision record; no implementation.')
 
 
 class DeclarationTests(unittest.TestCase):
@@ -106,16 +110,94 @@ class GitHistoryTests(unittest.TestCase):
     def test_existing_legacy_adr_is_recognized_without_edits(self):
         self.assertEqual(validate_repository(self.repo, self.base, self.base), {'ADR-0001'})
 
-    def test_new_accepted_adr_is_allowed_in_same_pr(self):
+    def test_implementation_references_adr_already_accepted_in_base(self):
         self.add_adr()
-        accepted = validate_repository(self.repo, self.base, self.commit())
+        base = self.commit()
+        self.write('example.java', '// subsequent implementation')
+        accepted = validate_repository(self.repo, base, self.commit())
         validate_pr(BODY, [], accepted)
+
+    def test_implementation_cannot_self_authorize_with_head_accepted_adr(self):
+        self.add_adr()
+        self.write('example.java', '// implementation in the same PR')
+        accepted = validate_repository(self.repo, self.base, self.commit())
+        self.assertNotIn('ADR-0013', accepted)
+        with self.assertRaisesRegex(ValidationError, 'Accepted in BASE'):
+            validate_pr(BODY, [], accepted)
 
     def test_proposed_adr_can_be_documented_but_cannot_govern_implementation(self):
         self.add_adr('Proposed')
+        self.write('example.java', '// implementation')
         accepted = validate_repository(self.repo, self.base, self.commit())
         with self.assertRaises(ValidationError):
             validate_pr(BODY, [], accepted)
+
+    def test_adr_only_pr_can_introduce_proposed_decision(self):
+        self.add_adr('Proposed')
+        head = self.commit()
+        accepted = validate_repository(self.repo, self.base, head)
+        self.assertIn('ADR-only', validate_pr(ADR_ONLY_BODY, [], accepted,
+                          decision_only_diff=decision_only_changes(self.repo, self.base, head)))
+
+    def test_adr_only_pr_can_introduce_human_reviewed_accepted_decision(self):
+        self.add_adr()
+        head = self.commit()
+        accepted = validate_repository(self.repo, self.base, head)
+        self.assertNotIn('ADR-0013', accepted)
+        self.assertIn('ADR-only', validate_pr(ADR_ONLY_BODY, [], accepted,
+                          decision_only_diff=decision_only_changes(self.repo, self.base, head)))
+
+    def test_promoting_base_proposed_to_head_accepted_does_not_authorize_implementation(self):
+        self.add_adr('Proposed')
+        base = self.commit()
+        path = self.root / 'docs/adr/0013-governance.md'
+        path.write_text(path.read_text().replace('Status: Proposed', 'Status: Accepted'))
+        self.write('example.java', '// implementation')
+        accepted = validate_repository(self.repo, base, self.commit())
+        with self.assertRaisesRegex(ValidationError, 'Accepted in BASE'):
+            validate_pr(BODY, [], accepted)
+
+    def test_adr_only_declaration_cannot_hide_implementation_files(self):
+        self.add_adr()
+        for path in ('example.java', '.github/workflows/check.yml', 'scripts/check.py', 'docs/execute.sh'):
+            self.write(path, 'implementation')
+            head = self.commit()
+            accepted = validate_repository(self.repo, self.base, head)
+            with self.subTest(path=path), self.assertRaisesRegex(ValidationError, 'documentation diff'):
+                validate_pr(ADR_ONLY_BODY, [], accepted,
+                            decision_only_diff=decision_only_changes(self.repo, self.base, head))
+            (self.root / path).unlink()
+
+    def test_adr_only_exemption_requires_an_actual_decision_change(self):
+        self.write('README.md', 'Documentation only, no decision')
+        head = self.commit()
+        self.assertFalse(decision_only_changes(self.repo, self.base, head))
+
+    def test_adr_only_exemption_checks_deleted_implementation_files(self):
+        self.write('example.java', '// implementation')
+        base = self.commit()
+        (self.root / 'example.java').unlink()
+        self.add_adr()
+        self.assertFalse(decision_only_changes(self.repo, base, self.commit()))
+
+    def test_adr_only_exemption_checks_source_of_rename_into_docs(self):
+        self.write('example.java', '// implementation')
+        base = self.commit()
+        (self.root / 'example.java').rename(self.root / 'docs/example.md')
+        self.add_adr()
+        self.assertFalse(decision_only_changes(self.repo, base, self.commit()))
+
+    def test_adr_only_exemption_rejects_executable_document(self):
+        self.add_adr()
+        self.commit()
+        self.git('update-index', '--chmod=+x', 'docs/adr/0013-governance.md')
+        self.git('commit', '-m', 'Executable document')
+        self.assertFalse(decision_only_changes(self.repo, self.base, self.git('rev-parse', 'HEAD')))
+
+    def test_invalid_status_fails_head_validation(self):
+        self.add_adr('Automatically approved')
+        with self.assertRaisesRegex(ValidationError, 'status'):
+            validate_repository(self.repo, self.base, self.commit())
 
     def test_editing_accepted_decision_fails_even_for_unclassified_pr(self):
         with (self.root / 'docs/adr/0001-original.md').open('a') as file:
@@ -164,9 +246,28 @@ class GitHistoryTests(unittest.TestCase):
 
     def test_cli_reads_pr_event_without_executing_body(self):
         self.add_adr()
+        base = self.commit()
+        self.write('example.java', '// implementation')
         head = self.commit()
         event = self.root / 'event.json'
         event.write_text(json.dumps({'pull_request': {'body': BODY, 'labels': []}}))
+        self.assertEqual(main(['--repo', str(self.root), '--base', base,
+                               '--head', head, '--event', str(event)]), 0)
+
+    def test_cli_fails_actual_pr_event_with_new_head_accepted_governing_adr(self):
+        self.add_adr()
+        self.write('scripts/validator.py', '# governance implementation')
+        head = self.commit()
+        event = self.root / 'event.json'
+        event.write_text(json.dumps({'pull_request': {'body': BODY, 'labels': []}}))
+        self.assertEqual(main(['--repo', str(self.root), '--base', self.base,
+                               '--head', head, '--event', str(event)]), 1)
+
+    def test_cli_allows_adr_only_event(self):
+        self.add_adr()
+        head = self.commit()
+        event = self.root / 'event.json'
+        event.write_text(json.dumps({'pull_request': {'body': ADR_ONLY_BODY, 'labels': []}}))
         self.assertEqual(main(['--repo', str(self.root), '--base', self.base,
                                '--head', head, '--event', str(event)]), 0)
 

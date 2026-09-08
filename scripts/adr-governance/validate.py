@@ -11,6 +11,7 @@ import subprocess
 
 
 ACCEPTED = {'Accepted', 'Accepted for implementation'}
+VALID_STATUSES = ACCEPTED | {'Proposed', 'Rejected', 'Deprecated', 'Superseded'}
 REQUIRED = ('Architecture-Decision', 'Implementation-Scope', 'Migration-Impact',
             'Rollback', 'Fitness-Functions')
 NUMBERED = re.compile(r'^docs/adr/(\d{4})-[^/]+\.md$')
@@ -47,7 +48,7 @@ def declarations(body):
     return result
 
 
-def validate_pr(body, labels, accepted_ids):
+def validate_pr(body, labels, accepted_in_base, decision_only_diff=False):
     fields = declarations(body or '')
     impact = fields.get('Architecture-Impact', [])
     if len(impact) > 1:
@@ -63,13 +64,18 @@ def validate_pr(body, labels, accepted_ids):
         if len(values) != 1 or not values[0] or re.search(r'<[^>]*>|\b(?:TBD|TODO)\b', values[0], re.I):
             raise ValidationError(f'{key} must contain one completed declaration')
     decision = fields['Architecture-Decision'][0]
+    if decision.lower() == 'none':
+        if not decision_only_diff:
+            raise ValidationError('Architecture-Decision: none requires an ADR-only documentation diff; '
+                                  'implementation must reference an ADR already Accepted in BASE')
+        return 'ADR-only decision PR: no implementation authorization granted.'
     ids = set(re.findall(r'\bADR-\d{4}\b', decision))
     if not ids or 'ADR-XXXX' in decision or re.search(r'\b(?:none|n/a)\b', decision, re.I):
         raise ValidationError('Architecture-Decision must reference an Accepted ADR-XXXX')
-    missing = ids - accepted_ids
+    missing = ids - accepted_in_base
     if missing:
-        raise ValidationError('ADR references are missing or not Accepted: ' + ', '.join(sorted(missing)))
-    return 'Architectural PR references Accepted decisions: ' + ', '.join(sorted(ids))
+        raise ValidationError('ADR references were not already Accepted in BASE: ' + ', '.join(sorted(missing)))
+    return 'Architectural implementation references Accepted decisions in BASE: ' + ', '.join(sorted(ids))
 
 
 class GitRepository:
@@ -101,16 +107,41 @@ class GitRepository:
         return self.git('cat-file', 'blob', entry[2]).decode('utf-8').replace('\r\n', '\n')
 
 
-def validate_repository(repo, base, head):
+def decision_only_changes(repo, base, head):
+    """Verify the narrow ADR-only exemption from Git, never from scope prose.
+
+    This is not an architecture classifier. It only checks whether a PR explicitly
+    using Architecture-Decision: none can qualify as a decision/documentation PR.
+    Compare both sides of renames/deletions and reject executable docs/symlinks.
+    """
     before, after = repo.files(base), repo.files(head)
+    changed = {path for path in before.keys() | after.keys() if before.get(path) != after.get(path)}
+    if not any(NUMBERED.fullmatch(path) for path in changed):
+        return False
+    for path in changed:
+        documentation = ((path.startswith('docs/') and path.endswith('.md')) or
+                         path in ('README.md', '.github/pull_request_template.md'))
+        if not documentation:
+            return False
+        for entry in (before.get(path), after.get(path)):
+            if entry and entry[:2] != ('100644', 'blob'):
+                return False
+    return True
+
+
+def validate_repository(repo, base, head):
+    """Validate HEAD integrity, but return authorization exclusively from BASE."""
+    before, after = repo.files(base), repo.files(head)
+    accepted_in_base = set()
     for path, entry in before.items():
         if NUMBERED.fullmatch(path) and status(repo.text(entry)) in ACCEPTED:
             if after.get(path) != entry:
                 raise ValidationError(f'Accepted ADR is immutable: {path}. Add a superseding ADR instead.')
+            accepted_in_base.add('ADR-' + NUMBERED.fullmatch(path)[1])
     for path in ('docs/adr/README.md', 'docs/adr/template.md'):
         if path not in after:
             raise ValidationError(f'Missing governance document: {path}')
-    accepted, identifiers = set(), set()
+    identifiers = set()
     numbered_paths = set()
     for path, entry in after.items():
         match = NUMBERED.fullmatch(path)
@@ -123,10 +154,8 @@ def validate_repository(repo, base, head):
         numbered_paths.add(path)
         content = repo.text(entry)
         heading = re.match(r'^# ADR[- ](\d{4}):\s+\S', content)
-        if not heading or heading[1] != match[1] or not status(content):
+        if not heading or heading[1] != match[1] or status(content) not in VALID_STATUSES:
             raise ValidationError(f'ADR heading or status missing/mismatched: {path}')
-        if status(content) in ACCEPTED:
-            accepted.add(identifier)
     index = repo.text(after['docs/adr/README.md'])
     linked = set()
     for target in re.findall(r'\]\(([^)]+)\)', index):
@@ -139,7 +168,7 @@ def validate_repository(repo, base, head):
         linked.add(path)
     if numbered_paths - linked:
         raise ValidationError('Unindexed ADR records: ' + ', '.join(sorted(numbered_paths - linked)))
-    return accepted
+    return accepted_in_base
 
 
 def main(argv=None):
@@ -151,14 +180,16 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         repo = GitRepository(args.repo)
-        accepted = validate_repository(repo, repo.revision(args.base), repo.revision(args.head))
+        base, head = repo.revision(args.base), repo.revision(args.head)
+        accepted_in_base = validate_repository(repo, base, head)
         if args.event:
             event = json.loads(args.event.read_text(encoding='utf-8'))
             pr = event.get('pull_request')
             if not isinstance(pr, dict):
                 raise ValidationError('Expected a pull_request event')
             labels = [label['name'] for label in pr.get('labels', [])]
-            print(validate_pr(pr.get('body'), labels, accepted))
+            print(validate_pr(pr.get('body'), labels, accepted_in_base,
+                              decision_only_diff=decision_only_changes(repo, base, head)))
         print('ADR history, identifiers, and index links passed.')
         return 0
     except (ValidationError, UnicodeError, OSError, ValueError, KeyError, TypeError) as exc:

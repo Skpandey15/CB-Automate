@@ -20,8 +20,9 @@ does not invent missing v4 specifications or accept the remaining planned ADRs.
 
 ## Decision
 
-1. Architecture-impacting implementation must reference an Accepted ADR before
-   implementation starts. An ADR is mandatory for a trust-boundary, autonomous
+1. Architecture-impacting implementation may reference only an ADR already
+   Accepted in the implementation PR's base revision. Merge the Accepted decision
+   before creating its implementation branch. An ADR is mandatory for a trust-boundary, autonomous
    authority, database/source-of-truth, event/Kafka contract, workflow/state-machine,
    cross-service contract, authentication/authorization, governance, external
    infrastructure/platform dependency, or deployment topology change.
@@ -29,6 +30,8 @@ does not invent missing v4 specifications or accept the remaining planned ADRs.
    context, a decision, consequences, migration, rollback, and fitness functions.
    Record acceptance by a human architecture owner/maintainer before implementing.
    AI-generated proposals and a passing CI check do not constitute acceptance.
+   A new ADR may be proposed/reviewed/accepted in an ADR-only PR. Implementation
+   governed by that ADR occurs in a subsequent PR after the Accepted ADR is merged.
 3. Accepted ADRs are historical records. Do not rewrite their original decisions
    to match implementation. A changed decision requires a new Accepted ADR that
    names the old decision in `Supersedes:`. Track the current relationship in the
@@ -39,18 +42,26 @@ does not invent missing v4 specifications or accept the remaining planned ADRs.
    declare `Architecture-Impact: yes` or `Architecture-Impact: no`. For changes
    without architectural impact, use `Architecture-Decision: none` and explain
    why in the implementation scope. Reviewers validate the classification.
+   An ADR-only decision PR uses `Architecture-Impact: yes`,
+   `Architecture-Decision: none`, and a scope stating that it contains only the
+   decision and supporting documentation, with no implementation.
 5. CI validates impacted PRs when the declaration says `yes` or the reviewer label
    `architecture-impacting` is present. Require the five completed fields and
-   verify each referenced ADR exists and is Accepted. New ADRs accepted in the
-   same PR are permitted when the human acceptance basis is recorded; reviewers
-   remain responsible for checking it. Do not infer architecture impact from
-   file paths, keywords in prose, or ordinary code/dependency changes.
+   verify each referenced ADR was already Accepted in BASE. An ADR added or
+   promoted to Accepted only in HEAD cannot authorize same-PR implementation.
+   Permit `none` for an ADR-only PR only when the actual diff changes a numbered
+   ADR and contains solely regular, non-executable Markdown under `docs/`, the
+   root `README.md`, or `.github/pull_request_template.md`. Check both sides of
+   deletions/renames. This narrow exemption does not grant implementation authority.
+   Do not infer architecture impact from file paths, keywords in prose, or ordinary
+   code/dependency changes; the diff check verifies only the ADR-only exemption.
 6. Missing impact declarations on older/harmless PRs produce an advisory message,
    not a blocking heuristic. Explicit invalid or contradictory declarations must
    be corrected. A reviewer-applied architecture label takes precedence over a
    `no` declaration. Preserve already-Accepted ADR files by comparing the base and
    head revisions, including content and path. Validate identifier uniqueness and
-   local ADR index links independently of PR classification.
+   local ADR index links, headings, and valid statuses in HEAD independently of PR
+   classification. HEAD document validity is separate from BASE authorization.
 7. Run the check in a read-only `pull_request` workflow with no secrets, write
    permissions, or interpolation of PR text into shell commands. It has no
    authority to merge, approve policy, or perform production actions. A maintainer
@@ -85,14 +96,24 @@ Add templates and CI without changing Java services, Python remediation behavior
 state, data, contracts, infrastructure, or existing capabilities. ADR-0001 remains
 unchanged. Reserved ADRs 0002–0012 are not implicitly Accepted by this decision.
 
+This BASE requirement corrects ADR-0013 before it enters immutable history.
+There is no bootstrap exception: a PR adding this decision and its governance
+implementation together cannot use the new decision to authorize itself. The
+Accepted ADR must land in BASE before the implementation PR can pass. Once this
+record is merged, including after PR #3 merges, future governance changes require
+a superseding ADR rather than edits to this record.
+
 Rollback the templates/check using a reviewed revert if adoption causes problems.
 Retain this decision as history; a changed governance decision requires a new ADR
 that supersedes ADR-0013. No database or runtime rollback is needed.
 
 ## Fitness functions
 
-- Architecture declaration or label + missing/Proposed/unknown ADR fails.
-- Accepted ADR + all required fields passes.
+- Architecture declaration or label + missing/Proposed/unknown governing ADR fails.
+- An ADR Accepted only in HEAD cannot authorize same-PR implementation.
+- An ADR already Accepted in BASE + all required fields passes.
+- An ADR-only Proposed or human-reviewed Accepted decision with `none` passes;
+  adding implementation to that diff fails, regardless of the scope declaration.
 - Harmless/unclassified PR passes without path-based classification.
 - Editing, deleting, or renaming a base-Accepted ADR fails.
 - ADR identifiers and local index links are valid and unique.
