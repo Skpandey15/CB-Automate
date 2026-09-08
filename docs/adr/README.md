@@ -12,6 +12,7 @@ already been implemented.
 | ID | Decision | Recorded status |
 | --- | --- | --- |
 | ADR-0001 | [Branch-scoped dependency remediation jobs](0001-branch-dependency-remediation.md) | Accepted for implementation (historical wording) |
+| ADR-0007 | [Fail-Closed Governance and Validation Semantics](0007-fail-closed-governance-and-validation-semantics.md) | Accepted |
 | ADR-0013 | [ADR-Driven Development Governance](0013-adr-driven-development-governance.md) | Accepted |
 
 The following numbers are reserved by the supplied target architecture. Their
@@ -24,7 +25,6 @@ records are not yet committed or Accepted; an entry in this list is not approval
 | ADR-0004 | Generic RemediationJob and Workflow Registry |
 | ADR-0005 | Durable Agent Workflow Checkpointing |
 | ADR-0006 | Isolated Remediation Execution |
-| ADR-0007 | Fail-Closed Governance and Validation Semantics |
 | ADR-0008 | Transactional Outbox, Consumer Inbox, Idempotency and DLQ |
 | ADR-0009 | Formal Remediation State Machine and Optimistic Concurrency |
 | ADR-0010 | Enterprise Identity, RBAC and MCP Tool Authorization |
