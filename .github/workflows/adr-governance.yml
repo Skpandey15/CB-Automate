@@ -1,0 +1,30 @@
+name: ADR governance
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+      - name: Test governance checks
+        run: python -m unittest discover -s scripts/adr-governance -p 'test_*.py' -v
+      - name: Check ADR history and declared PR impact
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: >-
+          python scripts/adr-governance/validate.py
+          --base "$BASE_SHA" --head "$HEAD_SHA" --event "$GITHUB_EVENT_PATH"
