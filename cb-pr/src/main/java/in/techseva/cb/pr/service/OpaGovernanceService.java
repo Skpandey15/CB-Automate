@@ -28,10 +28,11 @@ public class OpaGovernanceService {
     private final String opaPolicy;
 
     public OpaGovernanceService(
+            RestClient.Builder restClientBuilder,
             @Value("${opa.url:http://opa:8181}") String opaUrl,
             @Value("${opa.policy:cb/governance}") String opaPolicy,
             @Value("${opa.enabled:true}") boolean opaEnabled) {
-        this.restClient = RestClient.builder()
+        this.restClient = restClientBuilder
                 .baseUrl(opaUrl)
                 .build();
         this.opaPolicy = opaPolicy;
@@ -40,7 +41,7 @@ public class OpaGovernanceService {
 
     public GovernanceResult evaluate(Vulnerability vuln, Fix fix) {
         if (!opaEnabled) {
-            log.debug("OPA governance disabled — allowing PR for fix={}", fix.id());
+            log.warn("OPA governance DISABLED via config — allowing PR for fix={} with no policy check", fix.id());
             return GovernanceResult.allow();
         }
 
@@ -62,8 +63,8 @@ public class OpaGovernanceService {
                     .body(OpaResponse.class);
 
             if (response == null || response.result() == null) {
-                log.warn("OPA returned null response for fix={} — defaulting to ALLOW", fix.id());
-                return GovernanceResult.allow();
+                log.error("OPA returned null/malformed response for fix={} — failing CLOSED (denying PR)", fix.id());
+                return GovernanceResult.deny("OPA returned no result — authorization is unknown, not granted");
             }
 
             boolean allow = Boolean.TRUE.equals(response.result().get("allow"));
@@ -74,14 +75,18 @@ public class OpaGovernanceService {
             return new GovernanceResult(allow, violations);
 
         } catch (Exception e) {
-            log.error("OPA governance call failed for fix={}: {} — defaulting to ALLOW", fix.id(), e.getMessage());
-            return GovernanceResult.allow();
+            log.error("OPA governance call failed for fix={}: {} — failing CLOSED (denying PR)", fix.id(), e.getMessage());
+            return GovernanceResult.deny("OPA evaluation failed: " + e.getMessage());
         }
     }
 
     public record GovernanceResult(boolean allowed, List<String> violations) {
         static GovernanceResult allow() {
             return new GovernanceResult(true, List.of());
+        }
+
+        static GovernanceResult deny(String reason) {
+            return new GovernanceResult(false, List.of(reason));
         }
     }
 
