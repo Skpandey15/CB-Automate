@@ -14,6 +14,9 @@ import in.techseva.cb.patcher.kafka.ValidatedFixKafkaPublisher;
 import in.techseva.cb.patcher.service.BuildValidator.BuildResult;
 import jakarta.annotation.PostConstruct;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +28,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class PatcherService {
@@ -131,6 +135,64 @@ public class PatcherService {
             vulnerabilityRepo.save(vuln.withStatus(VulnerabilityStatus.FAILED));
             eventPublisher.publishEvent(new EscalationEvent(this, vuln, failed,
                     "Patch application error: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Checks out {@code branchName} in the shared repo workspace and runs a
+     * build against it. Backs the MCP "buildProject" tool, which previously
+     * called an endpoint that did not exist in this service.
+     */
+    public synchronized BuildResult buildBranch(String branchName) throws Exception {
+        checkoutBranch(branchName);
+        return buildValidator.runBuild();
+    }
+
+    /**
+     * Reverts the tip commit of {@code branchName} (git revert, not reset —
+     * preserves history), pushes the revert, marks the fix REJECTED, and
+     * rebuilds to confirm the revert is clean. Backs the MCP
+     * "triggerRollback" tool, which previously called an endpoint that did
+     * not exist in this service.
+     */
+    public synchronized BuildResult rollbackFix(String fixId, String branchName) throws Exception {
+        checkoutBranch(branchName);
+
+        try (Repository repo = new FileRepositoryBuilder()
+                .setGitDir(new File(repoRoot, ".git"))
+                .build();
+             Git git = new Git(repo)) {
+
+            RevCommit tip = git.log().setMaxCount(1).call().iterator().next();
+            git.revert().include(tip).call();
+            git.push()
+                    .setCredentialsProvider(new UsernamePasswordCredentialsProvider("token", githubToken))
+                    .setRemote("origin")
+                    .call();
+            log.info("Reverted tip commit {} on branch {} for fix={}", tip.getName(), branchName, fixId);
+        }
+
+        Optional<Fix> fixOpt = fixRepo.findById(fixId);
+        fixOpt.ifPresent(fix -> fixRepo.save(fix.withStatus(FixStatus.REJECTED)));
+
+        return buildValidator.runBuild();
+    }
+
+    private void checkoutBranch(String branchName) throws Exception {
+        try (Repository repo = new FileRepositoryBuilder()
+                .setGitDir(new File(repoRoot, ".git"))
+                .build();
+             Git git = new Git(repo)) {
+
+            var creds = new UsernamePasswordCredentialsProvider("token", githubToken);
+            git.fetch().setCredentialsProvider(creds).call();
+
+            var checkout = git.checkout().setName(branchName);
+            if (repo.findRef(branchName) == null) {
+                checkout.setCreateBranch(true).setStartPoint("origin/" + branchName);
+            }
+            checkout.call();
+            git.pull().setCredentialsProvider(creds).call();
         }
     }
 }
