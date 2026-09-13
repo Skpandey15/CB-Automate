@@ -1,0 +1,12 @@
+logging:
+  level:
+    in.techseva.cb: WARN
+
+# Swagger/OpenAPI is intentionally exempt from API-key auth in
+# ApiKeyAuthFilter.shouldNotFilter — fine for local/dev, but leaves the
+# full API surface documented and reachable by anyone in production.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
