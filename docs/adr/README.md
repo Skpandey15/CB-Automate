@@ -12,6 +12,7 @@ already been implemented.
 | ID | Decision | Recorded status |
 | --- | --- | --- |
 | ADR-0001 | [Branch-scoped dependency remediation jobs](0001-branch-dependency-remediation.md) | Accepted for implementation (historical wording) |
+| ADR-0002 | [Autonomous Remediation Control Plane](0002-autonomous-remediation-control-plane.md) | Proposed |
 | ADR-0007 | [Fail-Closed Governance and Validation Semantics](0007-fail-closed-governance-and-validation-semantics.md) | Accepted |
 | ADR-0013 | [ADR-Driven Development Governance](0013-adr-driven-development-governance.md) | Accepted |
 
@@ -20,7 +21,6 @@ records are not yet committed or Accepted; an entry in this list is not approval
 
 | Reserved ID | Planned decision |
 | --- | --- |
-| ADR-0002 | Autonomous Remediation Control Plane |
 | ADR-0003 | Java Deterministic Control Plane |
 | ADR-0004 | Generic RemediationJob and Workflow Registry |
 | ADR-0005 | Durable Agent Workflow Checkpointing |
