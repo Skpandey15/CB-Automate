@@ -26,6 +26,7 @@ public class GitHubEnterpriseClient {
     private final String defaultBranch;
 
     public GitHubEnterpriseClient(
+            RestClient.Builder restClientBuilder,
             @Value("${github.api-url:https://api.github.com}") String apiUrl,
             @Value("${github.token}") String token,
             @Value("${github.default-branch:main}") String defaultBranch) {
@@ -33,21 +34,32 @@ public class GitHubEnterpriseClient {
         factory.setConnectTimeout(10_000);   // 10s connect timeout
         factory.setReadTimeout(30_000);      // 30s read timeout
 
-        this.restClient = RestClient.builder()
+        RestClient.Builder base = restClientBuilder
                 .baseUrl(apiUrl)
                 .requestFactory(factory)
                 .defaultHeader("Authorization", "Bearer " + token)
+                .defaultHeader("X-GitHub-Api-Version", "2022-11-28");
+
+        this.restClient = base.clone()
                 .defaultHeader("Accept", "application/vnd.github.v3+json")
-                .defaultHeader("X-GitHub-Api-Version", "2022-11-28")
                 .build();
         // Separate client for diff requests (different Accept header)
-        this.diffClient = RestClient.builder()
-                .baseUrl(apiUrl)
-                .requestFactory(factory)
-                .defaultHeader("Authorization", "Bearer " + token)
+        this.diffClient = base.clone()
                 .defaultHeader("Accept", "application/vnd.github.diff")
-                .defaultHeader("X-GitHub-Api-Version", "2022-11-28")
                 .build();
+        this.defaultBranch = defaultBranch;
+    }
+
+    /**
+     * Test-only seam: the primary constructor always installs its own
+     * timeout-configured request factory, which would clobber a
+     * MockRestServiceServer-bound factory if tests went through it. Tests
+     * build their own RestClient(s) against a mocked transport and inject
+     * them directly instead.
+     */
+    GitHubEnterpriseClient(RestClient restClient, RestClient diffClient, String defaultBranch) {
+        this.restClient = restClient;
+        this.diffClient = diffClient;
         this.defaultBranch = defaultBranch;
     }
 
