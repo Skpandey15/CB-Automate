@@ -10,6 +10,8 @@ import in.techseva.cb.core.repository.VulnerabilityRepository;
 import in.techseva.cb.core.service.AuditService;
 import in.techseva.cb.pr.client.GitHubEnterpriseClient;
 import in.techseva.cb.pr.client.GitHubEnterpriseClient.GitPR;
+import in.techseva.cb.pr.kafka.FeedbackKafkaPublisher;
+import in.techseva.cb.pr.service.OpaGovernanceService.GovernanceResult;
 import jakarta.annotation.PostConstruct;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand;
@@ -49,6 +51,8 @@ public class PRPollerService {
     private final OntologyMapper ontologyMapper;
     private final AuditService auditService;
     private final AIReviewService aiReviewService;
+    private final OpaGovernanceService opaGovernance;
+    private final FeedbackKafkaPublisher feedbackPublisher;
     private final String repoRoot;
     private final String repoOwner;
     private final String repoName;
@@ -61,6 +65,8 @@ public class PRPollerService {
                            OntologyMapper ontologyMapper,
                            AuditService auditService,
                            AIReviewService aiReviewService,
+                           OpaGovernanceService opaGovernance,
+                           FeedbackKafkaPublisher feedbackPublisher,
                            @Value("${patcher.repo-root:/workspace/repo}") String repoRoot,
                            @Value("${github.owner}") String repoOwner,
                            @Value("${github.repo}") String repoName,
@@ -72,6 +78,8 @@ public class PRPollerService {
         this.ontologyMapper = ontologyMapper;
         this.auditService = auditService;
         this.aiReviewService = aiReviewService;
+        this.opaGovernance = opaGovernance;
+        this.feedbackPublisher = feedbackPublisher;
         this.repoRoot = repoRoot;
         this.repoOwner = repoOwner;
         this.repoName = repoName;
@@ -124,6 +132,21 @@ public class PRPollerService {
             if (fix.status() != FixStatus.BUILD_VALIDATED) {
                 log.debug("Fix {} status={}, skipping", fix.id(), fix.status()); continue;
             }
+
+            // OPA governance gate — must pass before a fix is eligible for the batch PR.
+            // Applies the same check PRService.onFixValidated already performs on the
+            // single-fix path; this batch path previously created PRs with no gate at all.
+            GovernanceResult governance = opaGovernance.evaluate(vuln, fix);
+            if (!governance.allowed()) {
+                log.warn("OPA governance BLOCKED batch PR inclusion for fix={}: violations={}",
+                        fix.id(), governance.violations());
+                auditService.log(fix.id(), "Fix", "OPA_BLOCKED", "pr-poller-service",
+                        Map.of("violations", governance.violations()));
+                feedbackPublisher.publishRejected(fix, vuln, governance.violations());
+                vulnerabilityRepo.save(vuln.withStatus(VulnerabilityStatus.FAILED));
+                continue;
+            }
+
             pairs.add(new VulnFixPair(vuln, fix));
         }
 
