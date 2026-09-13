@@ -2,9 +2,12 @@
 
 Date: 2026-09-13
 
-Status: Proposed
+Status: Accepted
 
-Acceptance basis: pending human architecture owner/maintainer review
+Acceptance basis: repository owner (skpandey15) reviewed and merged this
+decision via PR #6 into main (merge commit 3e1507378c2634334556d22256ae954eab7b968c,
+2026-09-13), then explicitly confirmed the merge in conversation with the
+requesting session before any implementation branch was created.
 
 Supersedes: none
 
