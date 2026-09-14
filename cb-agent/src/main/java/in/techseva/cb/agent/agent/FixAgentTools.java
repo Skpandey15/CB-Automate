@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -23,12 +24,21 @@ public class FixAgentTools {
     private final ObjectMapper objectMapper;
     private final RestClient mavenCentralClient;
 
-    public FixAgentTools(QdrantRAGService qdrantRAGService, ObjectMapper objectMapper) {
+    @Autowired
+    public FixAgentTools(QdrantRAGService qdrantRAGService, ObjectMapper objectMapper,
+                          RestClient.Builder restClientBuilder) {
         this.qdrantRAGService = qdrantRAGService;
         this.objectMapper = objectMapper;
-        this.mavenCentralClient = RestClient.builder()
+        this.mavenCentralClient = restClientBuilder
                 .baseUrl("https://search.maven.org/solrsearch/select")
                 .build();
+    }
+
+    /** Test-only seam: inject a pre-built RestClient (e.g. mocked transport) directly. */
+    FixAgentTools(QdrantRAGService qdrantRAGService, ObjectMapper objectMapper, RestClient mavenCentralClient) {
+        this.qdrantRAGService = qdrantRAGService;
+        this.objectMapper = objectMapper;
+        this.mavenCentralClient = mavenCentralClient;
     }
 
     @Tool(description = "Retrieve the top validated security fixes from the Compliance Buddy knowledge base that are similar to the given vulnerability. You MUST call this tool first before generating any fix. Returns a JSON array of fix summaries with patchDiff, strategy, and explanation.")
