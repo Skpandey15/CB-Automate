@@ -19,6 +19,9 @@ server:
 api:
   keys: ${CB_API_KEYS:dev-key-change-in-prod}
 
+scanner:
+  api-url: ${SCANNER_API_URL:http://cb-scanner:8081}
+
 springdoc:
   api-docs:
     path: /v3/api-docs
