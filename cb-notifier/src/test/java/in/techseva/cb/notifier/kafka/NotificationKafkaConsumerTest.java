@@ -4,13 +4,14 @@ import in.techseva.cb.core.domain.Severity;
 import in.techseva.cb.core.domain.Vulnerability;
 import in.techseva.cb.core.domain.VulnerabilityStatus;
 import in.techseva.cb.core.domain.VulnerabilityType;
+import in.techseva.cb.core.events.EscalationEvent;
 import in.techseva.cb.core.kafka.EscalationKafkaEvent;
 import in.techseva.cb.core.repository.VulnerabilityRepository;
-import in.techseva.cb.notifier.service.JiraTicketService;
-import in.techseva.cb.notifier.service.TeamsNotificationService;
+import in.techseva.cb.notifier.service.NotifierService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.support.Acknowledgment;
@@ -20,10 +21,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -32,12 +29,11 @@ import static org.mockito.Mockito.when;
 class NotificationKafkaConsumerTest {
 
     @Mock VulnerabilityRepository vulnerabilityRepo;
-    @Mock JiraTicketService jiraService;
-    @Mock TeamsNotificationService teamsService;
+    @Mock NotifierService notifierService;
     @Mock Acknowledgment ack;
 
     private NotificationKafkaConsumer consumer() {
-        return new NotificationKafkaConsumer(vulnerabilityRepo, jiraService, teamsService);
+        return new NotificationKafkaConsumer(vulnerabilityRepo, notifierService);
     }
 
     private Vulnerability vuln() {
@@ -49,25 +45,25 @@ class NotificationKafkaConsumerTest {
     }
 
     @Test
-    void onEscalation_withRejectionReasons_buildsReasonFromThem() {
+    void onEscalation_withRejectionReasons_notifiesWithReasonBuiltFromThem() {
         Vulnerability vuln = vuln();
         var event = new EscalationKafkaEvent("vuln1", "SONAR-001", "CWE-89", "CRITICAL",
                 "src/Foo.java", 3, List.of("low confidence", "build failed"), "fix1", Instant.now());
         when(vulnerabilityRepo.findById("vuln1")).thenReturn(Optional.of(vuln));
-        when(jiraService.createEscalationTicket(eq(vuln), any(), eq(3))).thenReturn("CB-42");
         var record = new ConsumerRecord<>("escalations.triggered", 0, 0L, "vuln1", event);
 
         consumer().onEscalation(record, ack);
 
-        var reasonCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
-        verify(jiraService).createEscalationTicket(eq(vuln), reasonCaptor.capture(), eq(3));
-        assertThat(reasonCaptor.getValue()).contains("low confidence").contains("build failed");
-        verify(teamsService).sendEscalationAlert(vuln, reasonCaptor.getValue(), "CB-42", 3);
+        ArgumentCaptor<EscalationEvent> captor = ArgumentCaptor.forClass(EscalationEvent.class);
+        verify(notifierService).onEscalation(captor.capture());
+        EscalationEvent notified = captor.getValue();
+        assertThat(notified.getVulnerability()).isEqualTo(vuln);
+        assertThat(notified.getReason()).contains("low confidence").contains("build failed");
         verify(ack).acknowledge();
     }
 
     @Test
-    void onEscalation_noRejectionReasons_buildsMaxRetriesReason() {
+    void onEscalation_noRejectionReasons_notifiesWithMaxRetriesReason() {
         Vulnerability vuln = vuln();
         var event = new EscalationKafkaEvent("vuln1", "SONAR-001", "CWE-89", "CRITICAL",
                 "src/Foo.java", 3, List.of(), "fix1", Instant.now());
@@ -76,13 +72,13 @@ class NotificationKafkaConsumerTest {
 
         consumer().onEscalation(record, ack);
 
-        var reasonCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
-        verify(jiraService).createEscalationTicket(eq(vuln), reasonCaptor.capture(), anyInt());
-        assertThat(reasonCaptor.getValue()).contains("Max retries").contains("3");
+        ArgumentCaptor<EscalationEvent> captor = ArgumentCaptor.forClass(EscalationEvent.class);
+        verify(notifierService).onEscalation(captor.capture());
+        assertThat(captor.getValue().getReason()).contains("Max retries").contains("3");
     }
 
     @Test
-    void onEscalation_vulnerabilityNotFound_skipsNotificationsButStillAcks() {
+    void onEscalation_vulnerabilityNotFound_skipsNotificationButStillAcks() {
         var event = new EscalationKafkaEvent("vuln1", "SONAR-001", "CWE-89", "CRITICAL",
                 "src/Foo.java", 3, List.of(), "fix1", Instant.now());
         when(vulnerabilityRepo.findById("vuln1")).thenReturn(Optional.empty());
@@ -90,7 +86,7 @@ class NotificationKafkaConsumerTest {
 
         consumer().onEscalation(record, ack);
 
-        verifyNoInteractions(jiraService, teamsService);
+        verifyNoInteractions(notifierService);
         verify(ack).acknowledge();
     }
 }

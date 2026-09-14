@@ -1,10 +1,10 @@
 package in.techseva.cb.notifier.kafka;
 
+import in.techseva.cb.core.events.EscalationEvent;
 import in.techseva.cb.core.kafka.EscalationKafkaEvent;
 import in.techseva.cb.core.kafka.KafkaTopics;
 import in.techseva.cb.core.repository.VulnerabilityRepository;
-import in.techseva.cb.notifier.service.JiraTicketService;
-import in.techseva.cb.notifier.service.TeamsNotificationService;
+import in.techseva.cb.notifier.service.NotifierService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,15 +18,12 @@ public class NotificationKafkaConsumer {
     private static final Logger log = LoggerFactory.getLogger(NotificationKafkaConsumer.class);
 
     private final VulnerabilityRepository vulnerabilityRepo;
-    private final JiraTicketService jiraService;
-    private final TeamsNotificationService teamsService;
+    private final NotifierService notifierService;
 
     public NotificationKafkaConsumer(VulnerabilityRepository vulnerabilityRepo,
-                                      JiraTicketService jiraService,
-                                      TeamsNotificationService teamsService) {
+                                      NotifierService notifierService) {
         this.vulnerabilityRepo = vulnerabilityRepo;
-        this.jiraService = jiraService;
-        this.teamsService = teamsService;
+        this.notifierService = notifierService;
     }
 
     @KafkaListener(
@@ -42,9 +39,8 @@ public class NotificationKafkaConsumer {
         vulnerabilityRepo.findById(event.vulnerabilityId()).ifPresentOrElse(
             vuln -> {
                 String reason = buildReason(event);
-                String jiraKey = jiraService.createEscalationTicket(vuln, reason, event.retryCount());
-                teamsService.sendEscalationAlert(vuln, reason, jiraKey, event.retryCount());
-                log.info("Escalation processed: vuln={} jira={}", event.vulnerabilityId(), jiraKey);
+                notifierService.onEscalation(new EscalationEvent(this, vuln, null, reason));
+                log.info("Escalation notification dispatched: vuln={}", event.vulnerabilityId());
             },
             () -> log.warn("Vulnerability {} not found for escalation event", event.vulnerabilityId())
         );
