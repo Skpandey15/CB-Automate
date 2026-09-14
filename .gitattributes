@@ -1,0 +1,16 @@
+# Force LF regardless of the checkout platform's core.autocrlf setting.
+# A CRLF-converted gradlew (or any shell script) breaks its shebang line
+# when it ends up inside a Linux Docker build context via `COPY . .` --
+# discovered while verifying cb-api/Dockerfile's remediate.py runtime
+# dependencies (ADR-0002 Track A): a Windows checkout with the common
+# core.autocrlf=true default silently mangled gradlew, and
+# `RUN ./gradlew :cb-api:bootJar` failed with "not found" (exit 127)
+# inside the builder stage even though the committed blob itself was
+# already correct LF.
+gradlew text eol=lf
+*.sh text eol=lf
+
+# Windows batch scripts (start-cb.bat, stop-cb.bat, status-cb.bat) expect
+# CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf

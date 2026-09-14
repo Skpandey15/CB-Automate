@@ -10,6 +10,7 @@ import in.techseva.cb.core.domain.VulnerabilityStatus;
 import in.techseva.cb.core.domain.VulnerabilityType;
 import in.techseva.cb.core.repository.FixRepository;
 import in.techseva.cb.core.repository.VulnerabilityRepository;
+import in.techseva.cb.mcp.client.CBApiClient;
 import in.techseva.cb.mcp.client.CBPatcherClient;
 import in.techseva.cb.mcp.client.GitHubMcpClient;
 import org.junit.jupiter.api.Test;
@@ -35,10 +36,11 @@ class CBMcpToolsTest {
     @Mock FixRepository fixRepo;
     @Mock GitHubMcpClient gitHubClient;
     @Mock CBPatcherClient patcherClient;
+    @Mock CBApiClient apiClient;
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     private CBMcpTools tools() {
-        return new CBMcpTools(vulnRepo, fixRepo, gitHubClient, patcherClient, objectMapper,
+        return new CBMcpTools(vulnRepo, fixRepo, gitHubClient, patcherClient, apiClient, objectMapper,
                 "http://tempo.invalid", "http://prometheus.invalid", "http://qdrant.invalid");
     }
 
@@ -207,5 +209,46 @@ class CBMcpToolsTest {
         when(gitHubClient.createPR("title", "body", "head", "main")).thenReturn("{\"number\":7}");
 
         assertThat(tools().createPR("title", "body", "head", "main")).isEqualTo("{\"number\":7}");
+    }
+
+    @Test
+    void triggerRemediationRun_delegatesToApiClientWithParsedRecipients() {
+        when(apiClient.startRemediationRun("owner/repo", "main", true, List.of("a@b.com", "c@d.com")))
+                .thenReturn("{\"runId\":\"run-1\",\"status\":\"RUNNING\"}");
+
+        String result = tools().triggerRemediationRun("owner/repo", "main", true, "a@b.com, c@d.com");
+
+        assertThat(result).contains("run-1");
+    }
+
+    @Test
+    void triggerRemediationRun_noRecipients_passesEmptyList() {
+        when(apiClient.startRemediationRun("owner/repo", "main", false, List.of()))
+                .thenReturn("{\"runId\":\"run-1\"}");
+
+        assertThat(tools().triggerRemediationRun("owner/repo", "main", false, "")).contains("run-1");
+    }
+
+    @Test
+    void triggerRemediationRun_apiClientThrows_returnsErrorStringInsteadOfPropagating() {
+        when(apiClient.startRemediationRun(any(), any(), org.mockito.ArgumentMatchers.anyBoolean(), any()))
+                .thenThrow(new RuntimeException("cb-api unreachable"));
+
+        assertThat(tools().triggerRemediationRun("owner/repo", "main", false, ""))
+                .contains("Failed to start remediation run");
+    }
+
+    @Test
+    void getRemediationRunStatus_delegatesToApiClient() {
+        when(apiClient.getRemediationRunStatus("run-1")).thenReturn("{\"status\":\"FIXED\"}");
+
+        assertThat(tools().getRemediationRunStatus("run-1")).isEqualTo("{\"status\":\"FIXED\"}");
+    }
+
+    @Test
+    void getRemediationRunStatus_apiClientThrows_returnsErrorStringInsteadOfPropagating() {
+        when(apiClient.getRemediationRunStatus("run-1")).thenThrow(new RuntimeException("cb-api unreachable"));
+
+        assertThat(tools().getRemediationRunStatus("run-1")).contains("Failed to fetch remediation run status");
     }
 }

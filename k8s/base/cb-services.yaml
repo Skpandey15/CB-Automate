@@ -558,6 +558,11 @@ spec:
                 secretKeyRef:
                   name: cb-secrets
                   key: GITHUB_REPO
+            - name: CB_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cb-secrets
+                  key: CB_API_KEYS
           resources:
             requests:
               memory: "256Mi"
