@@ -6,6 +6,7 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -25,6 +26,7 @@ public class GitHubEnterpriseClient {
     private final RestClient diffClient;
     private final String defaultBranch;
 
+    @Autowired
     public GitHubEnterpriseClient(
             RestClient.Builder restClientBuilder,
             @Value("${github.api-url:https://api.github.com}") String apiUrl,
