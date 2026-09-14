@@ -27,6 +27,10 @@ github:
 patcher:
   api-url: ${PATCHER_API_URL:http://cb-patcher:8083}
 
+cb-api:
+  url: ${CB_API_URL:http://cb-api:8080}
+  api-key: ${CB_API_KEY:}
+
 tempo:
   url: ${TEMPO_URL:http://tempo:3200}
 

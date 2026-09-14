@@ -8,6 +8,7 @@ import in.techseva.cb.core.domain.Vulnerability;
 import in.techseva.cb.core.domain.VulnerabilityStatus;
 import in.techseva.cb.core.repository.FixRepository;
 import in.techseva.cb.core.repository.VulnerabilityRepository;
+import in.techseva.cb.mcp.client.CBApiClient;
 import in.techseva.cb.mcp.client.CBPatcherClient;
 import in.techseva.cb.mcp.client.GitHubMcpClient;
 import org.slf4j.Logger;
@@ -31,6 +32,7 @@ public class CBMcpTools {
     private final FixRepository fixRepo;
     private final GitHubMcpClient gitHubClient;
     private final CBPatcherClient patcherClient;
+    private final CBApiClient apiClient;
     private final ObjectMapper objectMapper;
     private final RestClient tempoClient;
     private final RestClient prometheusClient;
@@ -40,6 +42,7 @@ public class CBMcpTools {
                       FixRepository fixRepo,
                       GitHubMcpClient gitHubClient,
                       CBPatcherClient patcherClient,
+                      CBApiClient apiClient,
                       ObjectMapper objectMapper,
                       @Value("${tempo.url:http://tempo:3200}") String tempoUrl,
                       @Value("${prometheus.url:http://prometheus:9090}") String prometheusUrl,
@@ -48,6 +51,7 @@ public class CBMcpTools {
         this.fixRepo = fixRepo;
         this.gitHubClient = gitHubClient;
         this.patcherClient = patcherClient;
+        this.apiClient = apiClient;
         this.objectMapper = objectMapper;
         this.tempoClient = RestClient.builder().baseUrl(tempoUrl).build();
         this.prometheusClient = RestClient.builder().baseUrl(prometheusUrl).build();
@@ -253,6 +257,35 @@ public class CBMcpTools {
             return result != null ? result : "{\"status\":\"ROLLBACK_REQUESTED\",\"fixId\":\"" + fixId + "\"}";
         } catch (Exception e) {
             return "{\"error\":\"Rollback failed: " + e.getMessage() + "\"}";
+        }
+    }
+
+    @Tool(description = "Trigger a dependency-CVE remediation run for ANY GitHub repository and branch (ADR-0002 Track A) -- clones the repo, scans dependencies for known CVEs via OSV, verifies fixes with a real build, and opens a PR. Runs asynchronously: returns a runId immediately, use getRemediationRunStatus to poll it. Unlike buildProject/triggerRollback, this is not limited to the repo Compliance Buddy is already configured against.")
+    public String triggerRemediationRun(
+            @ToolParam(description = "GitHub repository in 'owner/repo' form") String repoUrl,
+            @ToolParam(description = "Existing branch to scan and target with the PR") String branch,
+            @ToolParam(description = "If true, push verified fixes, open a PR, and email the given recipients; if false, preview only (no changes pushed)") boolean publish,
+            @ToolParam(description = "Comma-separated email recipients; required if publish=true, ignored otherwise") String recipientsCsv
+    ) {
+        try {
+            log.info("MCP: triggerRemediationRun repo={} branch={} publish={}", repoUrl, branch, publish);
+            List<String> recipients = (recipientsCsv == null || recipientsCsv.isBlank())
+                    ? List.of()
+                    : List.of(recipientsCsv.split("\\s*,\\s*"));
+            return apiClient.startRemediationRun(repoUrl, branch, publish, recipients);
+        } catch (Exception e) {
+            return "{\"error\":\"Failed to start remediation run: " + e.getMessage() + "\"}";
+        }
+    }
+
+    @Tool(description = "Get the status and result of a dependency-CVE remediation run previously started with triggerRemediationRun. Status is one of RUNNING, FIXED, PARTIAL, MANUAL_REQUIRED, NO_FINDINGS, or FAILED.")
+    public String getRemediationRunStatus(
+            @ToolParam(description = "The runId returned by triggerRemediationRun") String runId
+    ) {
+        try {
+            return apiClient.getRemediationRunStatus(runId);
+        } catch (Exception e) {
+            return "{\"error\":\"Failed to fetch remediation run status: " + e.getMessage() + "\"}";
         }
     }
 

@@ -381,6 +381,8 @@ All endpoints require `X-API-Key: dev-key-change-in-prod` unless noted.
 | GET    | /api/v1/cost/summary                        | LLM cost summary (default: last 7 days)               |
 | GET    | /api/v1/cost/by-cwe                         | Cost breakdown by CWE (default: last 30 days)         |
 | GET    | /api/v1/cost/by-model                       | Cost breakdown by model (default: last 30 days)       |
+| POST   | /api/v1/remediation-runs                    | Start a dependency-CVE remediation run for any GitHub repo/branch (ADR-0002 Track A) |
+| GET    | /api/v1/remediation-runs/{runId}            | Get the status/result of a remediation run             |
 | GET    | /actuator/health                            | Health status (no auth)                               |
 | GET    | /actuator/prometheus                        | Prometheus metrics scrape endpoint                    |
 
@@ -388,23 +390,25 @@ All endpoints require `X-API-Key: dev-key-change-in-prod` unless noted.
 
 ## MCP Tools
 
-`cb-mcp-server` exposes 12 MCP (Model Context Protocol) tools that AI assistants
+`cb-mcp-server` exposes 14 MCP (Model Context Protocol) tools that AI assistants
 (Claude Desktop, Cursor, etc.) can call to interact with the CB pipeline.
 
-| Tool               | Description                                                    |
-|--------------------|----------------------------------------------------------------|
-| findPreviousFixes  | Find validated fixes by CWE ID (limit 1–10)                   |
-| getSonarIssue      | Get vulnerability detail by SonarQube issue key               |
-| getPRDiff          | Fetch unified diff of a GitHub PR                             |
-| buildProject       | Trigger Gradle build on a branch via cb-patcher               |
-| createPR           | Create a GitHub PR (title, body, source/target branch)        |
-| getBuildLog        | Retrieve full build log by fix ID                             |
-| searchPastIncidents| Search vulnerabilities by keyword and optional CWE filter     |
-| queryQdrant        | Natural-language search over the fix vector store             |
-| regenerateFix      | Reset vulnerability to DETECTED for reprocessing              |
-| getTrace           | Fetch distributed trace from Tempo by trace ID                |
-| getMetrics         | Query Prometheus with PromQL                                   |
-| triggerRollback    | Revert a merged fix via git revert on cb-patcher              |
+| Tool                     | Description                                                    |
+|--------------------------|------------------------------------------------------------------|
+| findPreviousFixes        | Find validated fixes by CWE ID (limit 1–10)                    |
+| getSonarIssue            | Get vulnerability detail by SonarQube issue key                |
+| getPRDiff                | Fetch unified diff of a GitHub PR                               |
+| buildProject             | Trigger Gradle build on a branch via cb-patcher                |
+| createPR                 | Create a GitHub PR (title, body, source/target branch)         |
+| getBuildLog              | Retrieve full build log by fix ID                               |
+| searchPastIncidents      | Search vulnerabilities by keyword and optional CWE filter      |
+| queryQdrant              | Natural-language search over the fix vector store               |
+| regenerateFix            | Reset vulnerability to DETECTED for reprocessing                |
+| getTrace                 | Fetch distributed trace from Tempo by trace ID                  |
+| getMetrics               | Query Prometheus with PromQL                                     |
+| triggerRollback          | Revert a merged fix via git revert on cb-patcher                |
+| triggerRemediationRun    | Start a dependency-CVE remediation run for **any** GitHub repo/branch (ADR-0002 Track A) — not limited to CB's own configured repo |
+| getRemediationRunStatus  | Poll the status/result of a run started with triggerRemediationRun |
 
 **Connect to Claude Desktop** — add to `claude_desktop_config.json`:
 ```json
@@ -581,6 +585,8 @@ kubectl rollout restart deployment -n cb-system
 | GITHUB_OWNER               | cb-pr, cb-mcp-server       | GitHub org or username                        |
 | GITHUB_REPO                | cb-pr, cb-mcp-server       | Repository name                               |
 | GITHUB_API_URL             | cb-pr                      | https://api.github.com (or GHE URL)           |
+| CB_API_URL                 | cb-mcp-server               | http://cb-api:8080 -- for triggerRemediationRun/getRemediationRunStatus |
+| CB_API_KEY                 | cb-mcp-server               | A key from CB_API_KEYS, so cb-mcp-server can call cb-api's own auth-gated endpoints |
 | GITHUB_REVIEWER_USERNAME   | cb-pr                      | GitHub user auto-requested as reviewer        |
 | VERSION1_API_URL           | cb-pr                      | VersionOne/Version1 instance URL              |
 | VERSION1_TOKEN             | cb-pr                      | Version1 API token                            |
