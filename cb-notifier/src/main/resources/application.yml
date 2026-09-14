@@ -44,17 +44,6 @@ notifier:
   team-emails: ${NOTIFIER_TEAM_EMAILS:}
   from-email: ${NOTIFIER_FROM_EMAIL:cb-bot@techseva.in}
 
-jira:
-  enabled: ${JIRA_ENABLED:false}
-  base-url: ${JIRA_BASE_URL:}
-  email: ${JIRA_EMAIL:}
-  api-token: ${JIRA_API_TOKEN:}
-  project-key: ${JIRA_PROJECT_KEY:CB}
-
-teams:
-  enabled: ${TEAMS_ENABLED:false}
-  webhook-url: ${TEAMS_WEBHOOK_URL:}
-
 datadog:
   api-key: ${DATADOG_API_KEY:}
   site: ${DATADOG_SITE:datadoghq.com}
